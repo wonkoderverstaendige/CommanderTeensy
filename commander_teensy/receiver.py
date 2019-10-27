@@ -59,7 +59,7 @@ class PacketReceiver(serial.threaded.Packetizer):
         """
         # write data immediately to the log file, no matter what. For future parsing, we need to
         # re-append the line termination symbol.
-        self.log_file.write(base64.b64encode(arr + b'\0'))
+        self.log_file.write(base64.b64encode(arr + b'\0')+b'\n')
 
         # COBS decode the array
         if not len(arr):
@@ -121,7 +121,7 @@ class TeensyCommander:
                 self.dummy = SerialDummy()
                 self.ser = self.dummy.ser
             else:
-                exit
+                exit()
         self.serial_reader = ReaderThread(self.ser, PacketReceiver).__enter__()
         self.serial_reader.commander = self
 
