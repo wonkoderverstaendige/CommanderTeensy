@@ -89,18 +89,20 @@ documentReady(function() {
         const line = graph_analog.add_line();
         line.scaleFactor = 1/2**16;
         line.offset = 0;
+        line.color = 'hsl(' + (180/num_lines*i).toString() + ', 80%, 60%)';
         add_label(label_grid, 'analog_input_' + i.toString(), line.color, button=unit_fields_analog[i]);
     }
 
     // states graph
     label_grid = document.querySelector('#states_grid');
     num_lines = 8;
-    var scale_factors = [1/2**16.5, 1/2**10, 1/2**12, 1/2**22,
+    var scale_factors = [1/2**16.5, 1/2**10, 1/2**12, 1/2**12,
                         1/2**22, 1/2**22, 1/2**22, 1/2**22];
     for (let i = 0; i < num_lines; i++) {
         const line = graph_states.add_line();
-        line.scaleFactor = scale_factors[i];  // should be 32 for full range, just for ease of visualisation
-        line.offset = 0.5;
+        line.scaleFactor = scale_factors[i]/4;  // should be 32 for full range, just for ease of visualisation
+        line.offset = 1 - 1/num_lines*i - line.scaleFactor; //0.5;
+        line.color = 'hsl(' + (180/num_lines*i+180).toString() + ', 40%, 50%)';
         add_label(label_grid, 'states_input_' + i.toString(), line.color, button=unit_fields_states[i]);
     }
 
@@ -113,6 +115,12 @@ documentReady(function() {
         line.scaleFactor = 0.75/num_lines;
         line.offset = 1 - 1/num_lines*i - line.scaleFactor;
         line.draw_step = true;
+        if (i<16) {
+            line.color = 'hsl(' + (90/num_lines*i).toString() + ', 80%, 60%)';
+        } else {
+            line.color = 'hsl(' + (120/num_lines*i+120).toString() + ', 80%, 60%)';
+        }
+
         var btn = (i < 16) ? null : buttons[i-16];
         add_label(label_grid, "digital_" + data_type + "_" + i.toString(), line.color,  box=indicators[i], button=btn);
     }
