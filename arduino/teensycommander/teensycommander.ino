@@ -38,7 +38,7 @@ struct dataPacket {
     unsigned long us_start;// 4 B, gather start timestamp
     unsigned long us_end;  // 4 B, transmit timestamp
     uint16_t analog[8];    // 16 B, ADC values
-    int16_t variables[8];  // 16 B, variables (encoder, speed, etc)
+    long variables[8];  // 16 B, variables (encoder, speed, etc)
     
     uint16_t digitalIn;    // 2 B, digital inputs
     uint8_t digitalOut;    // 1 B, digital outputs
@@ -130,12 +130,13 @@ void gather() {
   int v = random(-100, 115);
   acceleration = speed - v;
   encoderPosition += v;
+  if (encoderPosition > 40960) encoderPosition = -encoderPosition;
   speed = v;
   packet.variables[0] = encoderPosition;
-  packet.variables[1] = 100*speed;
-  packet.variables[2] = 20*acceleration;
-  for (int p=4; p<8; p++) {
-    packet.variables[p] = 0;
+  packet.variables[1] = speed;
+  packet.variables[2] = acceleration;
+  for (int p=3; p<8; p++) {
+    packet.variables[p] = 0L;
   }
   packet.crc16 = CRC16.ccitt((byte*) &packet, sizeof(packet));
 

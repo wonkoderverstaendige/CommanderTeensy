@@ -95,9 +95,11 @@ documentReady(function() {
     // states graph
     label_grid = document.querySelector('#states_grid');
     num_lines = 8;
+    var scale_factors = [1/2**16.5, 1/2**10, 1/2**12, 1/2**22,
+                        1/2**22, 1/2**22, 1/2**22, 1/2**22];
     for (let i = 0; i < num_lines; i++) {
         const line = graph_states.add_line();
-        line.scaleFactor = 1/2**16;
+        line.scaleFactor = scale_factors[i];  // should be 32 for full range, just for ease of visualisation
         line.offset = 0.5;
         add_label(label_grid, 'states_input_' + i.toString(), line.color, button=unit_fields_states[i]);
     }
@@ -153,7 +155,7 @@ documentReady(function() {
             // state charts values
             for (let i=0; i<8; i++) {
                 lbl = document.querySelector('.unit_field#states_' + i.toString());
-                lbl.textContent = (packet.states[i] >= 0 ? '0' : '') + (packet.states[i] / 1000).toFixed(2) + ' ' + unit_names_states[i];
+                lbl.textContent = (packet.states[i] >= 0 ? '0' : '') + (packet.states[i] / 100).toFixed(2) + ' ' + unit_names_states[i];
             }
 
             // digital charts indicators
