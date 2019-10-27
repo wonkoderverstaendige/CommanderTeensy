@@ -8,39 +8,15 @@ function documentReady(fn) {
     }
 }
 
-
-// function empty_array(num_items) {
-//     return [...Array(num_items)].map(x=>[])
-// }
-
-// function get_data(current_x, last_idx, msPerPixel=10) {
-//     var new_idx = current_x % wv.length;
-//     var ts = new Date().getTime();
-//     var data = empty_array(16);
-
-//     for (var i=0; i<new_idx-last_idx; i++) {
-//         var t = ts - i*msPerPixel
-//         var idx = last_idx + i;
-//         if (idx > wv.length) {
-//             idx = 0;
-//         }
-
-//         for (var ch=0; ch < data.length; ch++) {
-//             data[ch].push([t, wv[idx]]);
-//         }
-//     }
-//     return [idx, data];
-// }
-
 function add_label(grid, channel_name, color, box=null, button=null) {
     div = document.createElement("div");
     div.className = "label";
     div.id = channel_name;
     div.style = "background-color: " + color;
-    var p = document.createElement("div")
-    p.className = "channel_name"
-    p.id = channel_name
-    p.textContent = channel_name
+    var p = document.createElement("div");
+    p.className = "channel_name";
+    p.id = channel_name;
+    p.textContent = channel_name;
     // tn = document.createTextNode(channel_name);
 
     if (box != null) {
@@ -60,17 +36,31 @@ documentReady(function() {
     ws = start_websocket(5678);
     graphs = new GraphCollection();
 
-    graph_A = new Graph('canvas_A');
-    graph_A.msPerPixel = 5;
-    graph_B = new Graph('canvas_B');
-    graph_B.msPerPixel = 5;
+    graph_analog = new Graph('canvas_analog');
+    graph_analog.msPerPixel = 5;
 
-    var unit_fields = [];
+    graph_states = new Graph('canvas_states');
+    graph_states.msPerPixel = 5;
+
+    graph_digital = new Graph('canvas_digital');
+    graph_digital.msPerPixel = 5;
+
+    var unit_fields_analog = [];
+    var unit_names_analog = ['V', 'V', 'V', 'V', 'V', 'V', 'V', 'V'];
     for (let i=0; i<8; i++) {
         lbl = document.createElement('div');
-        lbl.className = 'unit_field';
+        lbl.className = 'unit_field analog';
         lbl.id = "analog_" + i.toString();
-        unit_fields.push(lbl);
+        unit_fields_analog.push(lbl);
+    }
+
+    var unit_fields_states = [];
+    var unit_names_states = ['m', 'cm/s', 'cm/s²', 'mA', 'lux', '°C', 'Hz', 'kW'];
+    for (let i=0; i<8; i++) {
+        lbl = document.createElement('div');
+        lbl.className = 'unit_field states';
+        lbl.id = "states_" + i.toString();
+        unit_fields_states.push(lbl);
     }
 
     var indicators = [];
@@ -93,21 +83,31 @@ documentReady(function() {
     }
 
     // analog graph
-    var label_grid = document.querySelector('.label-grid#analog');
+    var label_grid = document.querySelector('#analog_grid');
     var num_lines = 8;
     for (let i = 0; i < num_lines; i++) {
-        const line = graph_A.add_line();
+        const line = graph_analog.add_line();
         line.scaleFactor = 1/2**16;
         line.offset = 0;
-        add_label(label_grid, 'analog_input_'+i.toString(), line.color, button=unit_fields[i]);
+        add_label(label_grid, 'analog_input_' + i.toString(), line.color, button=unit_fields_analog[i]);
+    }
+
+    // states graph
+    label_grid = document.querySelector('#states_grid');
+    num_lines = 8;
+    for (let i = 0; i < num_lines; i++) {
+        const line = graph_states.add_line();
+        line.scaleFactor = 1/2**16;
+        line.offset = 0.5;
+        add_label(label_grid, 'states_input_' + i.toString(), line.color, button=unit_fields_states[i]);
     }
 
     //digital graph
-    label_grid = document.querySelector('.label-grid#digital');
+    label_grid = document.querySelector('#digital_grid');
     num_lines = 24;
     for (let i = 0; i < num_lines; i++) {   
         const data_type = i < 16 ? "input" : "output";
-        const line = graph_B.add_line();
+        const line = graph_digital.add_line();
         line.scaleFactor = 0.75/num_lines;
         line.offset = 1 - 1/num_lines*i - line.scaleFactor;
         line.draw_step = true;
@@ -116,8 +116,9 @@ documentReady(function() {
     }
 
 
-    graphs.addGraph(graph_A);
-    graphs.addGraph(graph_B);
+    graphs.addGraph(graph_analog);
+    graphs.addGraph(graph_states);
+    graphs.addGraph(graph_digital);
     graphs.start();
 
 
@@ -137,24 +138,31 @@ documentReady(function() {
                 console.log(event.data);
                 return;
             }
-            graph_A.appendPacket(packet.us_start, packet.analog);
-            var digital = packet.digitalOut.concat(packet.digitalIn)
-            graph_B.appendPacket(packet.us_start, digital);
+            graph_analog.appendPacket(packet.us_start, packet.analog);
+            graph_states.appendPacket(packet.us_start, packet.states);
+            // console.log(packet.states);
+            graph_digital.appendPacket(packet.us_start, packet.digitalIn.concat(packet.digitalOut));
 
+            var lbl;
             // analog charts values
             for (let i=0; i<8; i++) {
-                var lbl = document.querySelector('.unit_field#analog_' + i.toString());
-                lbl.textContent = (packet.analog[i] / 2**16 * 3.3).toFixed(2) + ' V';
+                lbl = document.querySelector('.unit_field#analog_' + i.toString());
+                lbl.textContent = (packet.analog[i] / 2**16 * 3.3).toFixed(2) + ' ' + unit_names_analog[i];
+            }
 
+            // state charts values
+            for (let i=0; i<8; i++) {
+                lbl = document.querySelector('.unit_field#states_' + i.toString());
+                lbl.textContent = (packet.states[i] >= 0 ? '0' : '') + (packet.states[i] / 1000).toFixed(2) + ' ' + unit_names_states[i];
             }
 
             // digital charts indicators
             for (let i=0; i<24; i+=1) {
                 if (i<16) {
                     if (packet.digitalIn[i]) {
-                            indicators[15-i].style = 'background-color: #0F0';
+                            indicators[i].style = 'background-color: #0F0';
                     } else {
-                            indicators[15-i].style = 'background-color: #000';
+                            indicators[i].style = 'background-color: #000';
                     }
                 } else {
                     if (packet.digitalOut[i-16]) {

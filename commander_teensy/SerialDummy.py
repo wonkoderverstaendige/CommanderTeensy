@@ -29,7 +29,6 @@ class SerialDummy(threading.Thread):
         self.daemon = True
         self.n_packet = 0
         self.interval = 5
-        self.states = [0, 1, 2, 3, 4, 5, 6, 7]
 
         self.start()
 
@@ -55,7 +54,7 @@ class SerialDummy(threading.Thread):
         packet_us_start = self.n_packet * self.interval * 1000 % (2**32-1)
         packet_us_end = self.n_packet * self.interval * 1000 % (2**32-1)
         packet_analog = self.analog()
-        packet_states = self.states
+        packet_states = self.states()
 
         packet_digitalIn = int(self.n_packet/10 % 2**16)
         packet_digitalOut = int(self.n_packet/10 % 2**8)
@@ -80,5 +79,12 @@ class SerialDummy(threading.Thread):
         arr = []
         for n in range(8):
             val = int((math.sin((self.n_packet+n)/(2**(n+1)))+1) * (2**(n+8)-1))
+            arr.append(val)
+        return arr
+
+    def states(self):
+        arr = []
+        for n in range(8):
+            val = int((math.sin((self.n_packet+n+500)/(2**(n+1)))) * (2**(n+8)-1))
             arr.append(val)
         return arr

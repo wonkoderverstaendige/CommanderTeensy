@@ -1,25 +1,18 @@
-/* div.smoothie-chart-tooltip {
-    background: #444;
-    padding: 1em;
-    margin-top: 20px;
-    font-family: consolas;
-    color: white;
-    font-size: 10px;
-    pointer-events: none;
-} */
-
 .container-grid {
     display: grid;
     grid-template-columns: auto 200px;
-    grid-template-rows: 300px 420px;
-    grid-gap: 2px;
+    grid-template-rows: 250px 250px 420px;
+    grid-gap: 2px 2px;
     width: 1150px;
 }
 
 .container-grid > div {
-    padding: 0px 0px;
+    padding: 0 0;
 }
 
+.chart {
+    background-color: #000000;
+}
 .label-grid {
     display: grid;
     grid-template-columns: auto;
@@ -28,31 +21,47 @@
 }
 
 .label-grid > div {
-    padding: 0px 0px;
+    padding: 0 0;
+        vertical-align: middle;
 }
 
 .label {
-    font-size: 12px;
-    vertical-align: center;
+    position: relative;
 }
 
 .indicator {
     float: left;
-    width: 10px;
-    height: 10px;
+    width: 11px;
+    height: 11px;
     margin: 1px 3px;
     border: 1px solid rgba(0, 0, 0, .2);
     background-color: #555;
 }
 
 .unit_field {
-    float: right;
+    position:absolute;
+    top: 50%;
+    transform: translate(0, -50%);
+    background-color: rgba(255, 255, 255, .5);
     font-family: "Lucida Console", Monaco, monospace;
-    font-size: 16px;
+    padding: 2px 4px;
+ }
+
+.unit_field.analog {
+    left: 55%;
+    font-size: 16px
+}
+
+.unit_field.states {
+    left: 55%;
+    font-size: 12px;
 }
 
 .channel_name {
-    float: left;
+    font-size: 12px;
+    position: absolute;
+    top: 50%;
+    transform: translate(20px, -55%);
 }
 
 .toggle_button {
@@ -65,7 +74,7 @@
     color: #fff;
     background-color: rgb(99, 99, 99);
     border: none;
-    border-radius: 0px;
+    border-radius: 0;
     box-shadow: 0 3px #999;
 }
 .toggle_button:hover {background-color: #3e8e41}

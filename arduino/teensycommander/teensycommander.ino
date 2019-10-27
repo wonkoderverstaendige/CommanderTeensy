@@ -4,9 +4,14 @@
 FastCRC16 CRC16;
 PacketSerial packetSerial;
 
-//interval Timer creation
+// interval Timer creation
 IntervalTimer gatherTimer;
 elapsedMicros current_micros;
+
+// intermediate values
+int encoderPosition;
+int speed;
+int acceleration;
 
 enum packetType: uint8_t {
   ptSTATUS,
@@ -121,7 +126,17 @@ void gather() {
   for (int i=0; i<14; i++) {
     packet.digitalIn |= digitalReadFast(i) << i;
   }
-  
+
+  int v = random(-100, 115);
+  acceleration = speed - v;
+  encoderPosition += v;
+  speed = v;
+  packet.variables[0] = encoderPosition;
+  packet.variables[1] = 100*speed;
+  packet.variables[2] = 20*acceleration;
+  for (int p=4; p<8; p++) {
+    packet.variables[p] = 0;
+  }
   packet.crc16 = CRC16.ccitt((byte*) &packet, sizeof(packet));
 
   // process state packet

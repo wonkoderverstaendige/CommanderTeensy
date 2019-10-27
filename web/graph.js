@@ -1,8 +1,8 @@
-/* Heavily influenced by Tso (Peter) Chen's 
+/* Inspired by Tso (Peter) Chen's
  * 
  * Photoplethysmograph (Real Time PPG Grapher)
  * 
- * Orignal license:
+ * Original license:
  * Absolutely free to use, copy, edit, share, etc.
  * 
  * Written by: Ronny Eichler
@@ -12,8 +12,7 @@
   * Helper function to convert a number to the graph coordinate
   * ----------------------------------------------------------- */
 function convertToGraphCoord(l, num){
-  var y = l.graph.height - (num * l.scaleFactor * l.graph.height) - (l.graph.height * l.offset);
-  return y;
+  return l.graph.height - (num * l.scaleFactor * l.graph.height) - (l.graph.height * l.offset);
 }
 
 function random_hsl() {
@@ -21,8 +20,8 @@ function random_hsl() {
 }
 
 function GraphCollection() {
-  var collection = this;
-  collection.graphs = new Array();
+  const collection = this;
+  collection.graphs = [];
   collection.stop_graphs = false;
   collection.lastDraw = Infinity;
 
@@ -30,7 +29,7 @@ function GraphCollection() {
     * The call to start the animation
     * ---------------------------------------- */
   collection.start = function() {
-    var t = new Date().getTime()
+    var t = new Date().getTime();
     var delta = t - collection.lastDraw ? t > collection.lastDraw : 0;
     collection.lastDraw = t;
 
@@ -57,16 +56,16 @@ function GraphCollection() {
 }
 
 function Line(graph, lid) {
-  var l             =   this;
+  const l = this;
   l.graph           =   graph;
   l.id              =   lid;
-  l.linewidth       =   1.5;
+  l.linewidth       =   1.;
   l.color           =   `hsl(${Math.random()*360}, ${Math.floor(100 - 3.5 * l.id)}%, ${Math.floor(75 - 10 * (l.id % 4))}%)`;
   l.scaleFactor     =   1;
   l.offset          =   0;
   l.prev_x          =   0;
   l.prev_y          =   0;
-  l.dataBuffer      =   new Array();
+  l.dataBuffer      =   [];
   l.dofs            =   0.5;
   l.draw_step       =   false;
 
@@ -89,13 +88,13 @@ function Line(graph, lid) {
     // // We first move to the current x and y position (last point)
     // l.graph.context.moveTo(l.graph.current_x, l.graph.current_y);
 
-    for (i = 0; i < l.dataBuffer.length; i++) {
+    for (let i = 0; i < l.dataBuffer.length; i++) {
       // l.graph.context.strokeStyle = random_hsl();
       // Start the drawing
       // Put the new y point in from the buffer
-      var x = Math.floor(l.dataBuffer[i][0])+ofs;
-      var y = Math.floor(convertToGraphCoord(l, l.dataBuffer[i][1]))+ofs;
-      
+      const x = Math.floor(l.dataBuffer[i][0]) + ofs;
+      const y = Math.floor(convertToGraphCoord(l, l.dataBuffer[i][1])) + ofs;
+
       if (l.prev_x > x) {
         l.prev_x = x;
         l.prev_y = y;
@@ -108,7 +107,7 @@ function Line(graph, lid) {
       l.graph.context.moveTo(l.prev_x-.5, l.prev_y);
 
       if (l.draw_step) {
-        var dx = x - l.prev_x;
+        const dx = x - l.prev_x;
         if (dx >= 2) {
           l.graph.context.lineTo(l.prev_x+dx/2, l.prev_y);
           l.graph.context.lineTo(l.prev_x+dx/2, y);
@@ -137,8 +136,8 @@ function Line(graph, lid) {
    * Constructor for the Graph object
    * ----------------------------------------------------------- */
   function Graph(cid){
-    
-    var g             =   this;
+
+    const g = this;
     g.canvas_id       =   cid;
     g.canvas          =   document.getElementById(cid);
     g.canvas.width    = g.canvas.offsetWidth;
@@ -147,7 +146,7 @@ function Line(graph, lid) {
     g.width           =   g.canvas.width;
     g.height          =   g.canvas.height;
     g.bg_color        =   "rgba(0, 0, 0, ";
-    g.white_out       =   g.width * 0.01;
+    g.white_out       =   g.width * 0.02;
     g.fade_out        =   g.width * 0.05;
     g.fade_opacity    =   0.15;
     g.current_x       =   Infinity;
@@ -160,30 +159,17 @@ function Line(graph, lid) {
     g.graphStarted    =   false;
     g.t0 = 0;
 
-    g.lines           =   new Array();
+    g.lines           =   [];
    
     g.add_line = function() {
-      line = new Line(g, g.lines.length);
+      let line = new Line(g, g.lines.length);
       g.lines.push(line);
       return line;
-    }
+    };
 
-    /*
-     * The call to fill the data buffers 
-     * ---------------------------------------- */
-    // g.fillData = function(data) {
-    //   for (let i = 0; i < g.lines.length; i++) {
-    //     data[i].reverse().forEach(point => {
-    //       g.lines[i].dataBuffer.push(point)
-    //     });
-    //   }
-    // };
-      
     g.appendPacket = function(us, data) {
-      // console.log(us, us/1000 % g.x_range);
-      var x = g.us_to_x(us);
-      // console.log(x);
-      if (data.length != g.lines.length) {
+      const x = g.us_to_x(us);
+      if (data.length !== g.lines.length) {
         console.log('Wrong data length.', data.length, g.lines.length);
         return;
       }
@@ -191,15 +177,15 @@ function Line(graph, lid) {
           g.lines[i].dataBuffer.push([x, data[i]]);
       }
       g.current_x = x;
-    }
+    };
 
     g.t_to_x = function(t) {
       return Math.floor((t - g.t0) / g.msPerPixel);
-    }
+    };
 
     g.us_to_x = function(us) {
       return (us/1000 % g.x_range) * (g.width / g.x_range);
-    }
+    };
 
     g.draw = function(delta) {
       // Circle back the draw point back to zero when needed (ring drawing)
@@ -210,7 +196,7 @@ function Line(graph, lid) {
       }
 
       // "White out" a region before the draw point
-      for( i = 0; i < g.white_out ; i++){
+      for(let i = 0; i < g.white_out ; i++){
         g.erase_x = (g.current_x + i) % g.width;
         g.context.clearRect(g.erase_x, 0, 1, g.height);
         // g.context.fillStyle=g.bg_color + "1)";
@@ -218,14 +204,14 @@ function Line(graph, lid) {
       }
       
       // "Fade out" a region before the white out region
-      for( i = g.white_out ; i < g.fade_out ; i++ ){
+      for(let i = g.white_out ; i < g.fade_out ; i++ ){
         g.erase_x = (g.current_x + i) % g.width;
         g.context.fillStyle=g.bg_color + g.fade_opacity.toString() + ")";
         g.context.fillRect(g.erase_x, 0, 1, g.height);
       }
 
       // Draw the individual lines
-      var cx = g.current_x;
+      const cx = g.current_x;
       g.lines.forEach(line => {
         g.current_x = cx;
         line.draw();
