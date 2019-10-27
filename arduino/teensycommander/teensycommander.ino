@@ -12,6 +12,7 @@ elapsedMicros current_micros;
 int encoderPosition;
 int speed;
 int acceleration;
+int prev_lx = 0;
 
 enum packetType: uint8_t {
   ptSTATUS,
@@ -132,12 +133,16 @@ void gather() {
   encoderPosition += v;
   if (encoderPosition > 40960) encoderPosition = -encoderPosition;
   speed = v;
+  for (int p=0; p<8; p++) {
+    packet.variables[p] = 0L;
+  }
   packet.variables[0] = encoderPosition;
   packet.variables[1] = speed;
   packet.variables[2] = acceleration;
-  for (int p=3; p<8; p++) {
-    packet.variables[p] = 0L;
-  }
+  packet.variables[3] = packet.analog[0] - prev_lx;
+  prev_lx = packet.analog[0];
+  packet.variables[4] = 2130;
+
   packet.crc16 = CRC16.ccitt((byte*) &packet, sizeof(packet));
 
   // process state packet

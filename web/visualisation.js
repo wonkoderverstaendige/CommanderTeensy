@@ -55,7 +55,7 @@ documentReady(function() {
     }
 
     var unit_fields_states = [];
-    var unit_names_states = ['m', 'cm/s', 'cm/s²', 'mA', 'lux', '°C', 'Hz', 'kW'];
+    var unit_names_states = ['m', 'cm/s', 'cm/s²', 'Δlux', '°C', 'mA', 'Hz', 'kW'];
     for (let i=0; i<8; i++) {
         lbl = document.createElement('div');
         lbl.className = 'unit_field states';
@@ -97,7 +97,7 @@ documentReady(function() {
     label_grid = document.querySelector('#states_grid');
     num_lines = 8;
     var scale_factors = [1/2**16.5, 1/2**10, 1/2**12, 1/2**12,
-                        1/2**22, 1/2**22, 1/2**22, 1/2**22];
+                        1/25, 1/2**22, 1/2**22, 1/2**22];
     for (let i = 0; i < num_lines; i++) {
         const line = graph_states.add_line();
         line.scaleFactor = scale_factors[i]/4;  // should be 32 for full range, just for ease of visualisation
