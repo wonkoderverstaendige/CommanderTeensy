@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+
+<meta charset="UTF-8">
+
+<html>
+    <script type="text/javascript" src="../../reconnecting-websocket/reconnecting-websocket.js"></script>
+    <script type="text/javascript" src="graph.js"></script>
+    <head>
+        <link rel="stylesheet" href="style.css">
+        <title>Data logger interface</title>
+    </head>
+    <body>
+        <div class="container-grid">
+            <div class="chart" id="analog" style="background-color:#000">
+                <canvas id="canvas_A" width="1500" height="300"></canvas>
+            </div>
+            <div class="label-grid" id="analog" style="background-color:#ccc">
+            </div>
+
+            <div class="chart" id="digital" style="background-color:#000">
+                <canvas id="canvas_B" width="1500" height="420"></canvas>
+            </div>
+            <div class="label-grid" id="digital" style="background-color:#ccc">
+            </div>
+        </div>
+    </body>
+    <script type="text/javascript" src="visualisation.js"></script>
+</html>
