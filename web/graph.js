@@ -28,9 +28,32 @@ function GraphCollection() {
   /*  
     * The call to start the animation
     * ---------------------------------------- */
+
+  // var requestInterval = function (fn, delay) {
+  //   var requestAnimFrame = (function () {
+  //     return window.requestAnimationFrame || function (callback, element) {
+  //       window.setTimeout(callback, 1000 / 60);
+  //     };
+  //   })(),
+  //   start = new Date().getTime(),
+  //   handle = {};
+  //   function loop() {
+  //     handle.value = requestAnimFrame(loop);
+  //     var current = new Date().getTime(),
+  //     delta = current - start;
+  //     if (delta >= delay) {
+  //       fn.call();
+  //       start = new Date().getTime();
+  //     }
+  //   }
+  //   handle.value = requestAnimFrame(loop);
+  //   return handle;
+  // };
+
   collection.start = function() {
     var t = new Date().getTime();
-    var delta = t - collection.lastDraw ? t > collection.lastDraw : 0;
+    var delta = (t - collection.lastDraw) ? t > collection.lastDraw : 0;
+    var delta_t = t > collection.lastDraw ? t - collection.lastDraw : 0;
     collection.lastDraw = t;
 
     reqAnimFrame =  window.requestAnimationFrame       ||
@@ -43,11 +66,16 @@ function GraphCollection() {
     if (!collection.stop_graphs) reqAnimFrame(collection.start);
     
     // Draw the frame (with the supplied data buffer)
-    collection.graphs.forEach(graph => {
-      graph.draw(delta);
-    });
+    if (delta_t < 200) {
+      collection.graphs.forEach(graph => {
+        graph.draw(delta);
+      });
+    } else {
+      collection.graphs.forEach(graph => {
+        graph.flush();
+      });
+    }
 
-    
   };
 
   collection.addGraph = function(graph) {
@@ -177,6 +205,14 @@ function Line(graph, lid) {
           g.lines[i].dataBuffer.push([x, data[i]]);
       }
       g.current_x = x;
+    };
+
+    g.flush = function() {
+      g.context.clearRect(0, 0, g.width, g.height);
+      for (let i = 0; i < g.lines.length; i++) {
+          g.lines[i].dataBuffer.length = 0;
+          g.lines[i].started = false;
+      }
     };
 
     g.t_to_x = function(t) {
