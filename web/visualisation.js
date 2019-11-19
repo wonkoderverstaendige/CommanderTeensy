@@ -55,7 +55,7 @@ documentReady(function() {
     }
 
     var unit_fields_states = [];
-    var unit_names_states = ['m', 'cm/s', 'cm/s²', 'Δlux', '°C', 'mA', 'Hz', 'kW'];
+    var unit_names_states = ['cm', 'cm/s', 'cm/s²', 'Δlux', '°C', 'mA', 'Hz', 'kW'];
     for (let i=0; i<8; i++) {
         lbl = document.createElement('div');
         lbl.className = 'unit_field states';
