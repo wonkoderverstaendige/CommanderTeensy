@@ -1,5 +1,10 @@
+#include <Encoder.h>
 #include <FastCRC.h>
 #include <PacketSerial.h>
+
+#define WHEEL_ENC_PINA 5
+#define WHEEL_ENC_PINB 6
+#define WHEEL_ENC_SW 7
 
 FastCRC16 CRC16;
 PacketSerial packetSerial;
@@ -8,9 +13,14 @@ PacketSerial packetSerial;
 IntervalTimer gatherTimer;
 elapsedMicros current_micros;
 
+// Encoders and Sensors
+
+
+Encoder wheelEncoder(WHEEL_ENC_PINA, WHEEL_ENC_PINB);
+
 // intermediate values
 int encoderPosition;
-int speed;
+int velocity;
 int acceleration;
 int prev_lx = 0;
 
@@ -79,13 +89,15 @@ void setup() {
   }
   
   // digital input channels
-  for (int i=0; i<8; i++) {
+  for (int i=0; i<5; i++) {
     pinMode(0+i, INPUT_PULLUP);
   }
 
+  pinMode(WHEEL_ENC_SW, INPUT);
+
   // digital output channels
-  for (int i=0; i<8; i++) {
-    pinMode(6+i, OUTPUT);
+  for (int i=0; i<4; i++) {
+    pinMode(9+i, OUTPUT);
   }
 
   pinMode(ledPin, OUTPUT);
@@ -101,7 +113,7 @@ void loop() {
 //  digitalWrite(ledPin, !digitalRead(ledPin));
   delay(100);
   for (int i=0; i<3; i++) {
-    digitalWriteFast(6+i, (counter >> i) & 0x1);
+    digitalWriteFast(9+i, (counter >> i) & 0x1);
   }
   counter++;
 
@@ -128,16 +140,18 @@ void gather() {
     packet.digitalIn |= digitalReadFast(i) << i;
   }
 
-  int v = random(-100, 115);
-  acceleration = speed - v;
-  encoderPosition += v;
-  if (encoderPosition > 40960) encoderPosition = -encoderPosition;
-  speed = v;
+  long new_pos = wheelEncoder.read();
+  int v = encoderPosition - new_pos;
+  acceleration = velocity - v;
+  encoderPosition = new_pos;
+  velocity = v;
+//  if (encoderPosition > 40960) encoderPosition = -encoderPosition;
+
   for (int p=0; p<8; p++) {
     packet.variables[p] = 0L;
   }
   packet.variables[0] = encoderPosition;
-  packet.variables[1] = speed;
+  packet.variables[1] = velocity;
   packet.variables[2] = acceleration;
   packet.variables[3] = packet.analog[0] - prev_lx;
   prev_lx = packet.analog[0];
