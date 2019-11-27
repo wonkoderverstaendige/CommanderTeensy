@@ -1,0 +1,10 @@
+.title KiCad schematic
+U1 Net-_D1-Pad1_ GND NC_01 OUT1 GNDA +3V3 H11L1
+R1 +5V Net-_D1-Pad2_ 330
+R2 +3V3 OUT1 4.7k
+D1 Net-_D1-Pad1_ Net-_D1-Pad2_ LED
+D2 Net-_D2-Pad1_ Net-_D2-Pad2_ LED
+Q1 GNDA Net-_Q1-Pad2_ Net-_D2-Pad1_ 2N2219
+R3 Net-_D2-Pad2_ +3V3 330
+R4 Net-_Q1-Pad2_ OUT1 1k
+.end
