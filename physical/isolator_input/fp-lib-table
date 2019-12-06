@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name mila)(type KiCad)(uri ${KIPRJMOD}/mila.pretty)(options "")(descr ""))
+)
