@@ -15,8 +15,6 @@ IntervalTimer gatherTimer;
 elapsedMicros current_micros;
 
 // Encoders and Sensors
-
-
 Encoder wheelEncoder(WHEEL_ENC_PINA, WHEEL_ENC_PINB);
 
 // intermediate values
