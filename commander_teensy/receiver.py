@@ -1,6 +1,8 @@
+import argparse
+
 import serial
 from serial.threaded import Packetizer, ReaderThread
-import sys
+from datetime import datetime
 import traceback
 import time
 from cobs import cobs
@@ -25,6 +27,7 @@ import base64
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 
+SERIAL_PORT = 'COM3'
 WS_PORT = 5678
 HTTP_PORT = 8000
 USE_DUMMY = True
@@ -51,7 +54,7 @@ class PacketReceiver(serial.threaded.Packetizer):
 
     def connection_made(self , transport):
         super(PacketReceiver, self).connection_made(transport)
-        self.log_file = open('log_file.dat', 'w+b')
+        self.log_file = open(datetime.now().strftime("%Y%m%d-%H%M%S_%f")[:-3] + '.b64', 'w+b')
 
     def handle_packet(self, arr):
         """Handle an incoming packet from the serial port. The packetizer has stripped the 
@@ -110,10 +113,10 @@ class PacketReceiver(serial.threaded.Packetizer):
 
 
 class TeensyCommander:
-    def __init__(self, websocket_port=WS_PORT):
+    def __init__(self, serial_port, websocket_port):
         self.n_packet = 0
         try:
-            self.ser = serial.Serial('COM3')
+            self.ser = serial.Serial(serial_port)
         except serial.SerialException as e:
             logging.error("Can't find teensy: {}".format(e))
             if USE_DUMMY:
@@ -170,6 +173,13 @@ class TeensyCommander:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--serial_port', default=SERIAL_PORT)
+    parser.add_argument('-w', '--ws_port', default=WS_PORT)
+    parser.add_argument('-H', '--http_port', default=HTTP_PORT)
+
+    cli_args = parser.parse_args()
+
     # TODO: reconnecting serial connection
     Handler = http.server.SimpleHTTPRequestHandler
     with socketserver.TCPServer(("127.0.0.1", HTTP_PORT), Handler) as httpd:
@@ -178,5 +188,5 @@ if __name__ == "__main__":
         hst.daemon = True
         hst.start()
 
-        tc = TeensyCommander()
+        tc = TeensyCommander(cli_args.serial_port, cli_args.ws_port)
         tc.run_forever()
