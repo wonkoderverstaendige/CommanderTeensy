@@ -7,7 +7,7 @@
     # unsigned long ts_start;// 4 B, gather start timestamp
     # unsigned long ts_end;  // 4 B, transmit timestamp
     # uint16_t analog[8];    // 16 B, ADC values
-    # long states[8];     // 16 B, state variables (encoder, speed, etc)
+    # long states[8];        32 16 B, state variables (encoder, speed, etc)
     
     # uint16_t digitalIn;    // 2 B, digital inputs
     # uint8_t digitalOut;    // 1 B, digital outputs
