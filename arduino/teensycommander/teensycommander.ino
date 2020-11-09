@@ -112,10 +112,10 @@ void setup() {
   packetSerialB.begin(57600);
   packetSerialB.setPacketHandler(&onPacketReceived);
   packetSerialB.setStream(&SerialUSB1);
-  packetSerialExt.begin(57600);
-  packetSerialExt.setStream(&Serial1);
 
   // start data acquisition ticks, [us] interval
+  // lowering priority is required to give the Encoder priority
+  // and seems to massively reduce/prevent missed counts
   gatherTimer.priority(200);
   gatherTimer.begin(gather, 1000);
 }
@@ -135,6 +135,7 @@ void loop() {
 
     packetReady = false;
   }
+  
 //  if (packetSerialA.overflow() || packetSerialB.overflow()) {
 //    errorPacket ep;
 //    ep.us_start = current_micros;
