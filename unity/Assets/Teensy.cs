@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using UnityEditor;
+using UnityEngine;
 using System;
 using System.Collections;
 using System.Threading;
@@ -9,15 +10,55 @@ using System.Text;
 
 public struct Packet
 {
+    public DateTime received;
+    public byte[] raw;
     public byte type, length;
-    public ushort crc16;
+    public ushort crc16, crc16_tested;
     public uint packetID, usStart, usEnd;
     public ushort[] analog;
     public int[] variables;
     public ushort DIN;
     public byte DOUT;
+    public byte test;
 }
 
+
+public class Crc16
+// from http://sanity-free.org/147/standard_crc16_and_crc16_kermit_implementation_in_csharp.html
+// Thanks Steve!
+{
+    static ushort[] table = new ushort[256];
+
+    public ushort ComputeChecksum( params byte[] bytes ) {
+        ushort crc = 0;
+        for(int i = 0; i < bytes.Length; ++i) {
+            byte index = (byte)(crc ^ bytes[i]);
+            crc = (ushort)((crc >> 8) ^ table[index]);
+        }
+        return crc; // BitConverter.GetBytes()
+    }
+
+    public Crc16() {
+        ushort polynomial = 0x8408;
+        ushort value;
+        ushort temp;
+        for(ushort i = 0; i < table.Length; ++i) {
+            value = 0;
+            temp = i;
+            for(byte j = 0; j < 8; ++j) {
+                if(((value ^ temp) & 0x0001) != 0) {
+                    value = (ushort)((value >> 1) ^ polynomial);
+                }else {
+                    value >>= 1;
+                }
+                temp >>= 1;
+            }
+            table[i] = value;
+        }
+    }
+}
+
+public enum SerialPortStatus { NoConnection, Connected, Reconnecting };
 
 public class LineSplitter
 // from: https://www.sparxeng.com/blog/software/reading-lines-serial-port
@@ -75,16 +116,18 @@ public class Teensy : MonoBehaviour
         get { return m_Instance; }
     }
 
+    static string port = "COM8";
     static SerialPort _serialPort;
+    static SerialPortStatus _serialPortStatus = SerialPortStatus.NoConnection;
     static bool _alive;
 
-    // private static byte[] encodedData;
     public static float xvalue = 0;
     public static float yvalue = 0;
     public static int packetCount = 0;
+    public static double packetsPerSecond = 0;
     public static Packet State = new Packet();
     
-    DateTime start;
+    static DateTime ReceiveStart;
     static double elapsed = 0;
     static double last_blink = 0;
 
@@ -93,51 +136,88 @@ public class Teensy : MonoBehaviour
 
     public Font MyFont;
 
+    private static Crc16 CRC = new Crc16();
+
     // not sure when this is called. On init, before start?
     void Awake()
     {
         m_Instance = this;
         QualitySettings.vSyncCount = 0;
         Application.targetFrameRate = 60;
+        Debug.Log("Waking up");
     }
 
     // kill it with fire!
     void OnDestroy()
     {
+        Debug.Log("On Destroy");
         _alive = false;
-        readThread.Join();
-        _serialPort.Close();
+        if (readThread.ThreadState == ThreadState.Running) readThread.Join();
+        if (_serialPort.IsOpen) _serialPort.Close();
         m_Instance = null;
     }
 
     // Start is called before the first frame update
     void Start()
     {
-        _serialPort = new SerialPort("COM8", 57600);
-        // _serialPort.ReadBufferSize = 4096;
-        // _serialPort.ReadTimeout = 200;
-        // _serialPort.WriteTimeout = 200;
-        // _serialPort.NewLine = "\0";
+        Debug.Log("Starting up");
         _alive = true;
-        _serialPort.Open();
         splitter.LineReceived += handlePacket;
-
-        start = DateTime.Now;
         readThread.Start();
+    }
+
+    // attempt to connec to the serial port
+    public static bool Connect(string p) {
+        _serialPort = new SerialPort(p, 57600);
+        try {
+            _serialPort.Open();
+        } catch (IOException exc) {
+            Debug.Log("Connection failed: " + exc.ToString());
+        }
+
+        if (_serialPort.IsOpen) {
+            port = p;
+            _serialPortStatus = SerialPortStatus.Connected;
+            ReceiveStart = DateTime.Now;
+            return true;
+        } else {
+            _serialPortStatus = SerialPortStatus.NoConnection;
+            return false;
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
-        // sendData("1234567890");
+        // handle flags
+        // lickWasSeen? print("Hello!");
+        // lickWasSeen = false;
     }
 
     public static void Read()
     {
         byte[] buffer = new byte[16];
         Action kickoffRead = null;
-        kickoffRead = delegate
-        {
+        Action reconnect = null;
+        Action next = kickoffRead;
+
+        reconnect = delegate {
+            // if (_serialPort == null || !_serialPort.IsOpen) {
+            Debug.Log("Attempting to reconnect to port " + "COM8"); // faking the reconnection status indication.
+            _serialPortStatus = SerialPortStatus.Reconnecting;
+            Thread.Sleep(400);
+            if (Connect("COM8")) {
+                Debug.Log("We decided we are connected?");
+                next = kickoffRead;
+            } else {
+                Thread.Sleep(2600);
+                next = reconnect;
+            }
+            // }
+            if (_alive) next();
+        };
+
+        kickoffRead = delegate {
             _serialPort.BaseStream.BeginRead(buffer, 0, buffer.Length, delegate (IAsyncResult ar)
             {
                 try {
@@ -145,44 +225,75 @@ public class Teensy : MonoBehaviour
                     byte[] received = new byte[actualLength];
                     Buffer.BlockCopy(buffer, 0, received, 0, actualLength);
                     splitter.OnIncomingBinaryBlock(received);
+                    next = kickoffRead;
                 }
                 catch (IOException exc) {
-                    Debug.LogException(exc);
+                    Debug.Log("Serial read fail: " + exc.ToString());
+                    next = reconnect;
                 }
-                if (_alive) {
-                    kickoffRead();
+                catch (InvalidOperationException exc) {
+                    Debug.Log("Serial read fail: " + exc.ToString());
+                    next = reconnect;
                 }
+                if (_alive) next();
             }, null);
         };
-        kickoffRead();
+
+        reconnect();
     }
 
     void OnGUI()
     {
         int lh = 12;
         int line = 0;
-        elapsed = (DateTime.Now.Ticks - start.Ticks)  / 10000000f;
+        elapsed = (DateTime.Now.Ticks - ReceiveStart.Ticks)  / 10000000f;
+        packetsPerSecond = 0.9 * packetsPerSecond + 0.1 * (packetCount / elapsed);
+
         GUI.skin.font = MyFont;
+
+        GUI.Label(new Rect(10, lh*++line, 300, 20), "Serial " + port);
+        if (_serialPortStatus == SerialPortStatus.Connected) {
+            GUI.contentColor = Color.green;
+        } else if (_serialPortStatus == SerialPortStatus.Reconnecting) {
+            GUI.contentColor = Color.yellow;
+        } else {
+            GUI.contentColor = Color.red;
+        }
+        GUI.Label(new Rect(100, lh*line, 300, 20), _serialPortStatus.ToString());
+        GUI.contentColor = Color.white;
+
         GUI.Label(new Rect(10, lh*++line, 300, 20), "Packet#: " + packetCount.ToString() + " @ " + elapsed.ToString("F1") + "s");
-        GUI.Label(new Rect(10, lh*++line, 300, 20), (packetCount / elapsed).ToString("0000.") + " packets/s; ");
-        line++;
-        GUI.Label(new Rect(10, lh*++line, 300, 20), "Pid: " + State.packetID.ToString());
-        GUI.Label(new Rect(10, lh*++line, 300, 20), "Tgen: " + ((double)State.usEnd - (double)State.usStart).ToString() + " µs");
-            GUI.Label(new Rect(30, lh*++line, 300, 20),  "start: " + State.usStart.ToString());
-            GUI.Label(new Rect(30, lh*++line, 300, 20),  "end  : " + State.usEnd.ToString());
+        GUI.Label(new Rect(10, lh*++line, 300, 20), Math.Ceiling(packetsPerSecond).ToString("0000.") + " packets/s; ");
 
-        GUI.Label(new Rect(10, lh*++line, 300, 20), "Analog");
-        for (int ch=0; ch<8; ch++) {
-            if (State.analog.Length > 0) GUI.Label(new Rect(30, lh*++line, 300, 20), "Ch"+ch.ToString()+": " + (State.analog[ch]*3.3/16384).ToString("F2") + " V");
-        }
+        // CRC16
+        if (State.received.Ticks != 0) {
+            bool crcOK = State.crc16 == State.crc16_tested;
+            GUI.contentColor = crcOK? Color.green : Color.red;
+            GUI.Label(new Rect(10, lh*++line, 300, 20), "CRC16 " + (crcOK? "OK" : "BAD"));
+            GUI.contentColor = Color.white;
+                GUI.Label(new Rect(30, lh*++line, 300, 20), "TX: " + State.crc16.ToString("X4"));
+                GUI.Label(new Rect(30, lh*++line, 300, 20), "RX: " + State.crc16_tested.ToString("X4"));
 
-        GUI.Label(new Rect(10, lh*++line, 300, 20), "Variables");
-        for (int ch=0; ch<8; ch++) {
-            if (State.variables.Length > 0) GUI.Label(new Rect(30, lh*++line, 300, 20), "Ch"+ch.ToString()+": " + (State.variables[ch]).ToString());
+            line++;
+            GUI.Label(new Rect(10, lh*++line, 300, 20), "Pid: " + State.packetID.ToString());
+            if ((DateTime.Now.Ticks - State.received.Ticks) / 10000f > 200) GUI.Label(new Rect(110, lh*line, 300, 20), "STALE!");  // if data older than 200ms... oh dear.
+            GUI.Label(new Rect(10, lh*++line, 300, 20), "Tgen: " + ((double)State.usEnd - (double)State.usStart).ToString() + " µs");
+                GUI.Label(new Rect(30, lh*++line, 300, 20),  "start: " + State.usStart.ToString());
+                GUI.Label(new Rect(30, lh*++line, 300, 20),  "end  : " + State.usEnd.ToString());
+
+            GUI.Label(new Rect(10, lh*++line, 300, 20), "Analog");
+            for (int ch=0; ch<8; ch++) {
+                if (State.analog != null) GUI.Label(new Rect(30, lh*++line, 300, 20), "Ch"+ch.ToString()+": " + (State.analog[ch]*3.3/16384).ToString("F2") + " V");
+            }
+
+            GUI.Label(new Rect(10, lh*++line, 300, 20), "Variables");
+            for (int ch=0; ch<8; ch++) {
+                if (State.variables != null) GUI.Label(new Rect(30, lh*++line, 300, 20), "Ch"+ch.ToString()+": " + (State.variables[ch]).ToString());
+            }
+            
+            GUI.Label(new Rect(10, lh*++line, 300, 20), "Din : " + Convert.ToString(State.DIN, 2).PadLeft(16, '0'));
+            GUI.Label(new Rect(10, lh*++line, 300, 20), "Dout:   " + Convert.ToString(State.DOUT, 2).PadLeft(8, '0'));
         }
-        
-        GUI.Label(new Rect(10, lh*++line, 300, 20), "Din : " + Convert.ToString(State.DIN, 2).PadLeft(16, '0'));
-        GUI.Label(new Rect(10, lh*++line, 300, 20), "Dout:   " + Convert.ToString(State.DOUT, 2).PadLeft(8, '0'));
     }
 
     private void handlePacket(byte[] bytes) {
@@ -193,6 +304,12 @@ public class Teensy : MonoBehaviour
         }
         applyPacket(deCOBS(bytes));
         packetCount++;
+    }
+
+    public static byte[] enCOBS(byte[] arr)
+    // poor man's buggy COBS encoder
+    {
+        return arr;
     }
 
     public static byte[] deCOBS(byte[] arr)
@@ -217,8 +334,6 @@ public class Teensy : MonoBehaviour
             Debug.Log("Input" + BitConverter.ToString(arr));
             Debug.Log("Output" + BitConverter.ToString(orr));
         }
-        // Debug.Log("Input" + BitConverter.ToString(arr));
-        // Debug.Log("Output: " + BitConverter.ToString(orr));
         return orr;
     }
 
@@ -237,11 +352,19 @@ public class Teensy : MonoBehaviour
     // uint8_t digitalOut;    // 1 B, o: 66,  digital outputs
     // uint8_t padding[1];    // 1 B, o: 67,  align to 4B
     {
+        State.received = DateTime.Now;
+        State.raw = bytes;
         State.type = bytes[0];
         State.length = bytes[1];
-        State.crc16 = BitConverter.ToUInt16(bytes, 2);
-        State.packetID = BitConverter.ToUInt32(bytes, 4);
 
+        State.crc16 = BitConverter.ToUInt16(bytes, 2);
+        byte[] tmp = new byte[bytes.Length];
+        bytes.CopyTo(tmp, 0); // make copy
+        tmp[2] = 0; // set crc16 field to zero, as was when
+        tmp[3] = 0; // crc16_ccitt was calculated before sending.
+        State.crc16_tested = CRC.ComputeChecksum(tmp);
+
+        State.packetID = BitConverter.ToUInt32(bytes, 4);
         State.usStart = BitConverter.ToUInt32(bytes, 8);
         State.usEnd = BitConverter.ToUInt32(bytes, 12);
         State.analog = new ushort[8];
@@ -260,18 +383,27 @@ public class Teensy : MonoBehaviour
         State.DOUT = bytes[66];
     }
 
-    public void sendData(string data)
+    public void sendData(string dat) {
+        _sendData(dat);
+    }
+
+    public static void _sendData(string data)
     {
+        if (_serialPort == null || !_serialPort.IsOpen) return;
         // raw:     01-01-07-01
         // COBS: 04-01-01-07-01-00
         double delta = (DateTime.Now.Ticks - last_blink)/10000f;
-        // Debug.Log(delta.ToString("F2"));
         if (delta > 1)
         {
-            byte[] cmd = {4, 1, 1, 7, 1, 0};
-            _serialPort.Write(cmd, 0, cmd.Length);
-            // Debug.Log("Toggling!");
-            last_blink = DateTime.Now.Ticks;
+            if (data == "position") {
+                byte[] cmd = {4, 1, 1, 7, 1, 0};
+                _serialPort.Write(cmd, 0, cmd.Length);
+            } else {
+                byte[] cmd = {4, 1, 1, 7, 1, 0};
+                _serialPort.Write(cmd, 0, cmd.Length);
+                _serialPort.BaseStream.Flush();
+                last_blink = DateTime.Now.Ticks;
+            }
         }
     }
 }
