@@ -12,4 +12,10 @@
 
 [ ] per-type packet count?
 
-[ ] Something seems broken with the CRC, the first byte is always 0x44 and the second predictable.
+[X] Something seems broken with the CRC, the first byte is always 0x44 and the second predictable.
+
+[ ] COBS encoder for Unity side
+
+[ ] per-type packet handling on teensy side
+
+[ ] 

@@ -6,9 +6,12 @@
 #define WHEEL_ENC_PINB 6
 #define WHEEL_ENC_SW 7
 
+#define EXTSERIAL Serial1
+
 FastCRC16 CRC16;
 PacketSerial packetSerialA;
 PacketSerial packetSerialB;
+PacketSerial packetSerialExt;
 
 // interval Timer creation
 IntervalTimer gatherTimer;
@@ -18,11 +21,11 @@ elapsedMicros current_micros;
 Encoder wheelEncoder(WHEEL_ENC_PINA, WHEEL_ENC_PINB);
 
 // intermediate values
-int encoderPosition;
-int velocity;
-int acceleration;
+long encoderPosition = 0;
 int last_packet_took = 0;
-int prev_lx = 0;
+
+bool gatherNow = false;
+bool packetReady = false;
 
 enum packetType: uint8_t {
   ptSTATUS,
@@ -81,6 +84,8 @@ struct errorPacket {
 const int ledPin = LED_BUILTIN;
 unsigned char counter = 0;
 
+dataPacket State;
+
 void setup() {
   // analog input channels
   analogReadResolution(16);
@@ -107,22 +112,29 @@ void setup() {
   packetSerialB.begin(57600);
   packetSerialB.setPacketHandler(&onPacketReceived);
   packetSerialB.setStream(&SerialUSB1);
+  packetSerialExt.begin(57600);
+  packetSerialExt.setStream(&Serial1);
 
   // start data acquisition ticks, [us] interval
+  gatherTimer.priority(200);
   gatherTimer.begin(gather, 1000);
 }
 
 void loop() {
-  delay(100);
-  for (int i=0; i<3; i++) {
-    digitalWriteFast(9+i, (counter >> i) & 0x1);
-  }
-  counter++;
-  //SerialUSB2.println(counter);
-
   // check current serial status
   packetSerialA.update();
   packetSerialB.update();
+
+  if (packetReady) {
+    State.crc16 = CRC16.kermit((uint8_t*) &State, sizeof(State));
+    packetSerialA.send((byte*) &State, sizeof(State));
+    packetSerialB.send((byte*) &State, sizeof(State));
+
+    // apply current state vector
+    processState(&State);
+
+    packetReady = false;
+  }
 //  if (packetSerialA.overflow() || packetSerialB.overflow()) {
 //    errorPacket ep;
 //    ep.us_start = current_micros;
@@ -142,7 +154,7 @@ void loop() {
 
 void gather() {
   digitalWriteFast(7, LOW); // toggle pin to indicate gather start
-  volatile dataPacket packet;
+  dataPacket packet;
   packet.us_start = current_micros;
   
   for (int i=0; i<8; i++) {
@@ -154,34 +166,27 @@ void gather() {
     packet.digitalIn |= digitalReadFast(i) << i;
   }
 
+  noInterrupts();
   long new_pos = wheelEncoder.read();
-  int v = encoderPosition - new_pos;
-  acceleration = velocity - v;
-  encoderPosition = new_pos;
-  velocity = v;
-//  if (encoderPosition > 40960) encoderPosition = -encoderPosition;
+  interrupts();
 
   for (int p=0; p<8; p++) {
     packet.variables[p] = 0L;
   }
-  packet.variables[0] = encoderPosition;
-  packet.variables[1] = velocity;
-  packet.variables[2] = acceleration;
-  packet.variables[3] = packet.analog[0] - prev_lx;
-  prev_lx = packet.analog[0];
-  packet.variables[4] = 2130;
+  packet.variables[0] = new_pos;
+  packet.variables[1] = 1;
+  packet.variables[2] = 2;
+  packet.variables[3] = 3;
+  packet.variables[4] = 4;
+  packet.variables[4] = 5;
+  packet.variables[4] = 6;
   packet.variables[7] = last_packet_took;
-
-  packet.crc16 = CRC16.ccitt((uint8_t*) &packet, packet.length);
-
-  // process state packet
-  processState(&packet);
-  
   packet.us_end = current_micros;
-  packetSerialA.send((byte*) &packet, sizeof(packet));
-  packetSerialB.send((byte*) &packet, sizeof(packet));
+
   last_packet_took = current_micros - packet.us_start;
 
+  State = packet;
+  packetReady = true;
   digitalWriteFast(7, HIGH); // toggle pin to indicate gather end
 }
 
@@ -194,8 +199,12 @@ void onPacketReceived(const uint8_t* buffer, size_t size) {
   }
 }
 
-void processState(volatile dataPacket* packet) {
+void processState(dataPacket* packet) {
   // apply finite state machine updates here
+  for (int i=0; i<3; i++) {
+    digitalWriteFast(9+i, (counter >> i) & 0x1);
+  }
+  counter++;
 }
 
 void processCommand(const uint8_t* buffer, size_t size) {
