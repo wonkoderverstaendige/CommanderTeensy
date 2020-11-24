@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP AM4096
+D 12 bit angular magnetic encoder IC
+K magnetic encoder
+F https://www.rls.si/eng/fileuploader/download/download/?d=1&file=custom%2Fupload%2FAM4096D02_08.pdf
+$ENDCMP
+#
+#End Doc Library

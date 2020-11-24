@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name rls_parts)(type Legacy)(uri C:/Users/reichler/src/CommanderTeensy/physical/AM4096_inc/rls_parts.lib)(options "")(descr ""))
+)
