@@ -9,6 +9,7 @@
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+.idea/
 
 ### Windows template
 # Windows thumbnail cache files

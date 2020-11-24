@@ -18,4 +18,4 @@
 
 [ ] per-type packet handling on teensy side
 
-[ ] 
+[ ] heartbeats from clients per serial port
