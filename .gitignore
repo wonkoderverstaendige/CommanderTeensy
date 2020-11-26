@@ -9,6 +9,9 @@ fp-info-cache
 *-rescue.lib
 *-save.pro
 *-save.kicad_pcb
+*.sch-bak
+*.pcb-bak
+*.kicad_pcb-bak
 
 # Created by .ignore support plugin (hsz.mobi)
 ### VisualStudioCode template
