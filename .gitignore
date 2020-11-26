@@ -2,6 +2,14 @@
 *.dat
 *.b64
 
+## KiCAD
+fp-info-cache
+*-cache.lib
+*.tmp
+*-rescue.lib
+*-save.pro
+*-save.kicad_pcb
+
 # Created by .ignore support plugin (hsz.mobi)
 ### VisualStudioCode template
 .vscode/*
