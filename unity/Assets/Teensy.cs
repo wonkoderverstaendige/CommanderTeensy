@@ -124,6 +124,7 @@ public class Teensy : MonoBehaviour
     public static float xvalue = 0;
     public static float yvalue = 0;
     public static int packetCount = 0;
+    public static int crcFaults = 0;
     public static double packetsPerSecond = 0;
     public static Packet State = new Packet();
     
@@ -179,6 +180,7 @@ public class Teensy : MonoBehaviour
             port = p;
             _serialPortStatus = SerialPortStatus.Connected;
             ReceiveStart = DateTime.Now;
+            packetCount = 0;
             return true;
         } else {
             _serialPortStatus = SerialPortStatus.NoConnection;
@@ -238,7 +240,6 @@ public class Teensy : MonoBehaviour
                 if (_alive) next();
             }, null);
         };
-
         reconnect();
     }
 
@@ -263,11 +264,11 @@ public class Teensy : MonoBehaviour
         GUI.contentColor = Color.white;
 
         GUI.Label(new Rect(10, lh*++line, 300, 20), "Packet#: " + packetCount.ToString() + " @ " + elapsed.ToString("F1") + "s");
-        GUI.Label(new Rect(10, lh*++line, 300, 20), Math.Ceiling(packetsPerSecond).ToString("0000.") + " packets/s; ");
+        GUI.Label(new Rect(10, lh*++line, 300, 20), Math.Ceiling(packetsPerSecond).ToString("0000.") + " packets/s; " + crcFaults.ToString() + " CRC faults");
 
         // CRC16
         if (State.received.Ticks != 0) {
-            bool crcOK = State.crc16 == State.crc16_tested;
+            bool crcOK = State.crc16 == State.crc16_tested;  // compute on receive!
             GUI.contentColor = crcOK? Color.green : Color.red;
             GUI.Label(new Rect(10, lh*++line, 300, 20), "CRC16 " + (crcOK? "OK" : "BAD"));
             GUI.contentColor = Color.white;
@@ -363,6 +364,7 @@ public class Teensy : MonoBehaviour
         tmp[2] = 0; // set crc16 field to zero, as was when
         tmp[3] = 0; // crc16_ccitt was calculated before sending.
         State.crc16_tested = CRC.ComputeChecksum(tmp);
+        if (State.crc16_tested != State.crc16) crcFaults++;
 
         State.packetID = BitConverter.ToUInt32(bytes, 4);
         State.usStart = BitConverter.ToUInt32(bytes, 8);
