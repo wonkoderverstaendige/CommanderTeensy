@@ -12,6 +12,7 @@ fp-info-cache
 *.sch-bak
 *.pcb-bak
 *.kicad_pcb-bak
+_autosave-*
 
 # Created by .ignore support plugin (hsz.mobi)
 ### VisualStudioCode template
