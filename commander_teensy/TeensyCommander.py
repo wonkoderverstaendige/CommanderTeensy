@@ -1,6 +1,7 @@
 import argparse
 import logging
 import time
+from datetime import datetime
 
 import serial
 import serial.threaded
@@ -86,8 +87,11 @@ def main(screen):
     console = logging.StreamHandler()
     console.setLevel(loglevel)
     console.setFormatter(logging.Formatter(LOG_FORMAT))
-    log_file = logging.FileHandler('teensy_commander.log', mode='w')
+
+    start_time_str = datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_file = logging.FileHandler(f'{start_time_str}_teensy_commander.log', mode='w')
     log_file.setLevel(logging.DEBUG)
+    log_file.setFormatter(logging.Formatter(LOG_FORMAT))
 
     logging.getLogger().handlers.clear()
     logging.getLogger().addHandler(console)
