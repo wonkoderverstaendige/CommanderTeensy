@@ -34,6 +34,7 @@ class TeensyCommander:
 
         try:
             self.ser = serial.Serial(self.serial_port)
+            self.ser.flushInput()
         except serial.SerialException as e:
             logging.error("Can't find teensy. {}".format(e))
             if USE_DUMMY:

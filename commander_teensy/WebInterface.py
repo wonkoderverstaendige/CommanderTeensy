@@ -10,7 +10,6 @@ import numpy as np
 from .websocket_server import WebsocketServer as ReconnectingWebsocketServer
 
 WEB_DIRECTORY = (Path(__file__).parent / '../web').resolve().as_posix()
-logging.critical(WEB_DIRECTORY)
 
 
 def bitlist(num, nbits=16):
