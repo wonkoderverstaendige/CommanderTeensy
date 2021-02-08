@@ -128,4 +128,4 @@ class CursesUI(threading.Thread):
 
 if __name__ == '__main__':
     screen = curses.initscr()
-    gui = CursesUI(screen, daemon=False)
+    gui = CursesUI(screen=screen, commander=None, daemon=False)
