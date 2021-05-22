@@ -80,19 +80,19 @@ def main(screen):
     except KeyError:
         loglevel = logging.DEBUG
 
-    LOG_FORMAT = '[%(asctime)s]{%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
+    log_format = '[%(asctime)s]{%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
     logging.basicConfig(level=loglevel,
-                        format=LOG_FORMAT,
+                        format=log_format,
                         datefmt='%H:%M:%S')
 
     console = logging.StreamHandler()
     console.setLevel(loglevel)
-    console.setFormatter(logging.Formatter(LOG_FORMAT))
+    console.setFormatter(logging.Formatter(log_format))
 
     start_time_str = datetime.now().strftime("%Y%m%d-%H%M%S")
     log_file = logging.FileHandler(f'{start_time_str}_teensy_commander.log', mode='w')
     log_file.setLevel(logging.DEBUG)
-    log_file.setFormatter(logging.Formatter(LOG_FORMAT))
+    log_file.setFormatter(logging.Formatter(log_format))
 
     logging.getLogger().handlers.clear()
     logging.getLogger().addHandler(console)
@@ -100,16 +100,21 @@ def main(screen):
     logging.getLogger().setLevel(loglevel)
 
     # TODO: reconnecting serial connection
-    logging.info("Known serial ports: " + repr(sorted([comport.device for comport in serial.tools.list_ports.comports()])))
-    logging.info(f"Launching Teensy Commander on serial port {cli_args.serial_port} and the web interface on ports http:{cli_args.http_port} + ws:{cli_args.ws_port}")
+    logging.info(
+        "Known serial ports: " + repr(sorted([comport.device for comport in serial.tools.list_ports.comports()])))
+    logging.info(
+        f"Launching Teensy Commander on serial port {cli_args.serial_port} and the web interface "
+        "on ports http:{cli_args.http_port} + ws:{cli_args.ws_port}")
     tc = TeensyCommander(serial_port=cli_args.serial_port,
                          http_port=cli_args.http_port,
                          ws_port=cli_args.ws_port,
                          curses_screen=screen)
     tc.run_forever()
 
+
 def cli_entry():
     curses.wrapper(main)
+
 
 if __name__ == "__main__":
     cli_entry()
