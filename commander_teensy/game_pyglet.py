@@ -10,6 +10,7 @@ import logging
 from packet import DataPacket, DataPacketStruct
 import struct
 import receiver
+import argparse
 
 pyglet.options['vsync'] = True
 
