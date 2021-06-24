@@ -29,6 +29,7 @@ screen = display.get_default_screen()
 screen_width = screen.width
 screen_height = screen.height
 
+
 block_size = int(width/30)
 x = int(width/2 - block_size/2)
 y = int(height/2 - block_size/2)
@@ -99,5 +100,25 @@ def on_draw():
     fps_display.draw()
 
 
-pyglet.app.run()
-    
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--serial_port', default=SERIAL_PORT)
+    parser.add_argument('-w', '--ws_port', default=WS_PORT)
+    parser.add_argument('-H', '--http_port', default=HTTP_PORT)
+
+    cli_args = parser.parse_args()
+
+    # TODO: reconnecting serial connection
+    Handler = http.server.SimpleHTTPRequestHandler
+    with socketserver.TCPServer(("127.0.0.1", HTTP_PORT), Handler) as httpd:
+        logging.info(f"HTTP server at port {HTTP_PORT}")
+        hst = threading.Thread(target=httpd.serve_forever)
+        hst.daemon = True
+        hst.start()
+
+        tc = TeensyCommander(cli_args.serial_port, cli_args.ws_port)
+        tc.run_forever()
+    pyglet.app.run()
+
