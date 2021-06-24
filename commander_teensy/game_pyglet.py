@@ -41,7 +41,7 @@ controlrect = shapes.Rectangle(width-block_size, height-block_size, block_size, 
 
 fps_display = pyglet.window.FPSDisplay(window=window)
 
-rec = receiver.TeensyCommander()
+#rec = receiver.TeensyCommander()
 
 #def readteensy():
 #    try:
