@@ -1,21 +1,40 @@
 #include <Encoder.h>
 #include <FastCRC.h>
 #include <PacketSerial.h>
+#include <Audio.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <SD.h>
+#include <SerialFlash.h>
+#include <math.h>
 
 #define WHEEL_ENC_PINA 5
 #define WHEEL_ENC_PINB 6
 #define WHEEL_ENC_SW 7
 
 #define EXTSERIAL Serial1
+#define RESOLUTION 12
 
 FastCRC16 CRC16;
 PacketSerial packetSerialA;
 PacketSerial packetSerialB;
 PacketSerial packetSerialExt;
 
+// GUItool: begin automatically generated code
+AudioSynthWaveform       waveform1;      //xy=573,189
+AudioEffectEnvelope      envelope1;      //xy=716,264
+AudioOutputAnalog        dac1;           //xy=865,191
+AudioConnection          patchCord1(waveform1, envelope1);
+AudioConnection          patchCord2(envelope1, dac1);
+AudioControlSGTL5000     sgtl5000_1;     //xy=635,407
+// GUItool: end automatically generated code
+
+
 // interval Timer creation
 IntervalTimer gatherTimer;
 elapsedMicros current_micros;
+elapsedMillis soundstart;
+int duration = 0;
 
 // Encoders and Sensors
 Encoder wheelEncoder(WHEEL_ENC_PINA, WHEEL_ENC_PINB);
@@ -26,6 +45,9 @@ int last_packet_took = 0;
 
 bool gatherNow = false;
 bool packetReady = false;
+
+int testpos = 0;
+bool testposBool = false;
 
 enum packetType: uint8_t {
   ptSTATUS,
@@ -39,8 +61,10 @@ enum Intructions: uint8_t {
   instPIN_TOGGLE,
   instPIN_HIGH,
   instPIN_LOW,
-  instSET_STATE
+  instSET_STATE,
+  instTRIG_AUDIO
 };
+
 
 volatile unsigned long packetCount = 0;
 struct dataPacket {
@@ -66,6 +90,23 @@ struct dataPacket {
                    digitalOut(0) {}
 };
 
+struct inPacket {
+    uint8_t type;          // 1 B, packet type
+    uint8_t length;        // 1 B, packet size
+    uint16_t crc16;        // 2 B, CRC16
+    //unsigned long packetID;// 4 B, running packet count
+    
+    Intructions instruction; // 1 B
+    uint8_t target; // 1 B
+    char message[18];
+    uint8_t padding[1];
+
+    inPacket() : type(ptCOMMAND),
+                 length(sizeof(inPacket)),
+                 crc16(0){}  
+                 //packetID(packetCount++)  
+};
+
 struct errorPacket {
     uint8_t type;          // 1 B, packet type
     uint8_t length;        // 1 B, packet size
@@ -87,6 +128,17 @@ unsigned char counter = 0;
 dataPacket State;
 
 void setup() {
+  analogWriteResolution(RESOLUTION);
+  
+  // Start audio
+  Serial.begin(9600);
+  AudioMemory(20);
+  sgtl5000_1.enable();
+  sgtl5000_1.volume(0.5);
+  // End audio
+  playSine(800,100);
+  // End audio
+  
   // analog input channels
   analogReadResolution(16);
   for (int i=0; i<8; i++) {
@@ -118,6 +170,8 @@ void setup() {
   // and seems to massively reduce/prevent missed counts
   gatherTimer.priority(200);
   gatherTimer.begin(gather, 1000);
+  
+  digitalWriteFast(5, LOW);
 }
 
 void loop() {
@@ -151,6 +205,19 @@ void loop() {
   if (packetSerialB.overflow()) {
     SerialUSB2.println("S_B overflow!");
   }
+  
+  // TESTING
+  setTestPos();
+}
+
+void setTestPos() {
+  if (testposBool) {
+    testpos = 2;
+    testposBool = false;
+  } else{
+    testpos = -2;
+    testposBool = true;
+  }
 }
 
 void gather() {
@@ -171,9 +238,13 @@ void gather() {
   long new_pos = wheelEncoder.read();
   interrupts();
 
+  // TESTING
+  new_pos = testpos;
+
   for (int p=0; p<8; p++) {
     packet.variables[p] = 0L;
   }
+  
   packet.variables[0] = new_pos;
   packet.variables[1] = 1;
   packet.variables[2] = 2;
@@ -191,12 +262,27 @@ void gather() {
   digitalWriteFast(7, HIGH); // toggle pin to indicate gather end
 }
 
-void onPacketReceived(const uint8_t* buffer, size_t size) {
+void playSine(int freq, int dur){
+  //if (!envelope1.isActive()) {
+    waveform1.begin(0.5, freq, WAVEFORM_SINE);
+    envelope1.noteOn();
+    envelope1.sustain(0);
+    envelope1.decay(0);
+    envelope1.attack(0);
+    envelope1.hold(dur);
+    //envelope1.release(1);
+    //envelope1.noteOff();
+  //}
+}
+
+void onPacketReceived(const uint8_t* buf, size_t buf_sz) {
   // if we receive a command, do what it tells us to do...
-  if (buffer[0] == ptCOMMAND) {
-    processCommand(buffer, size);
+  SerialUSB2.write(buf, buf_sz);
+  if (buf[0] == ptCOMMAND) {
+    SerialUSB2.write("CMD\n");
+    //inPacket packet_rcv = inPacket();
+    processCommand(buf, buf_sz);
   } else {
-    SerialUSB2.write(buffer, size);
   }
 }
 
@@ -208,6 +294,36 @@ void processState(dataPacket* packet) {
   counter++;
 }
 
-void processCommand(const uint8_t* buffer, size_t size) {
-  digitalWrite(6+buffer[2], !digitalRead(6+buffer[2]));
+int programCount = 0;
+void processCommand (const uint8_t* buf, size_t buf_sz) {
+  digitalWrite(6+buf[2], !digitalRead(6+buf[2]));
+  struct inPacket* ip = (struct inPacket*)buf;
+  char* message = (char*)ip->message;
+  int target = ip->target;
+  switch(ip->instruction){
+      case instPIN_TOGGLE: 
+        playSine(1000, 1500);
+        Serial.println("Toggle pin"); 
+        break;
+      case instPIN_HIGH: 
+        digitalWriteFast(ip->target, HIGH);
+        break;
+      case instPIN_LOW:   
+        digitalWriteFast(ip->target, LOW);
+        break;
+      case instSET_STATE: 
+        Serial.println("instSet_State"); 
+        break;
+      case instTRIG_AUDIO: 
+        char * freqChar = strtok(message, ",");
+        char * durChar = strtok(NULL, ",");
+        int freq,dur;
+        freq = atoi(freqChar);
+        dur = atoi(durChar);
+        playSine(freq,dur);        
+        break;
+      default: 
+        Serial.println("Unknown command"); 
+        break;
+  }
 }
