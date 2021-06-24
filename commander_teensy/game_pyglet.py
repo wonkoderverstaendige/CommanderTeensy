@@ -16,6 +16,7 @@ import socketserver
 import logging
 import threading
 
+
 pyglet.options['vsync'] = True
 
 #SERIAL_PORT = 'COM6'
@@ -34,7 +35,6 @@ screen = display.get_default_screen()
 screen_width = screen.width
 screen_height = screen.height
 
-
 block_size = int(width/30)
 x = int(width/2 - block_size/2)
 y = int(height/2 - block_size/2)
@@ -46,25 +46,10 @@ controlrect = shapes.Rectangle(width-block_size, height-block_size, block_size, 
 
 fps_display = pyglet.window.FPSDisplay(window=window)
 
-#rec = receiver.TeensyCommander()
+#serial_port = 'COM11'
+#websocket_port = 5678
 
-#def readteensy():
-#    try:
-#        ser=serial.Serial(SERIAL_PORT)
-#        read_ser=ser.readline()
-#        if (len(line) > 60):
-#            line = base64.b64decode(line)
-#            line = line[:-1]
-#            dec = cobs.decode(line)
-#            s = struct.unpack(DataPacketStruct, dec)
-#            dp = DataPacket(type=s[0], size=s[1], crc16=s[2], packetID=s[3], us_start=s[4], us_end=s[5],analog=s[6:14], states=s[14:22], digitalIn=s[22], digitalOut=s[23], padding=None)
-#            print(dp)
-#        #print(read_ser)
-#    except serial.SerialException as e:
-#        logging.error("Can't find teensy: {}".format(e))
-    
-
-
+#rec = receiver.TeensyCommander(serial_port, websocket_port)
     
 def update(dt):
     pass
@@ -94,6 +79,9 @@ def on_draw():
     global changeColor
     print(rec.get_xpos())
     rectangle.x = rectangle.x + rec.get_xpos()/2
+    # TESTING
+    #rectangle.x = rec.get_xpos()/2
+    
     
     if changeColor:
         controlrect.color = (255,255,255) 
@@ -103,8 +91,6 @@ def on_draw():
         changeColor = True
     batch.draw()
     fps_display.draw()
-
-
 
 
 if __name__ == "__main__":
