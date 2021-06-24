@@ -123,7 +123,7 @@ if __name__ == "__main__":
         hst.daemon = True
         hst.start()
 
-        tc = TeensyCommander(cli_args.serial_port, cli_args.ws_port)
+        tc = receiver.TeensyCommander(cli_args.serial_port, cli_args.ws_port)
         tc.run_forever()
     pyglet.app.run()
 
