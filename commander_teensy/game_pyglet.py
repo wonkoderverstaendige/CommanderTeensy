@@ -12,6 +12,7 @@ import struct
 import receiver
 import argparse
 
+
 pyglet.options['vsync'] = True
 
 #SERIAL_PORT = 'COM6'
@@ -105,16 +106,16 @@ def on_draw():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s', '--serial_port', default=SERIAL_PORT)
-    parser.add_argument('-w', '--ws_port', default=WS_PORT)
-    parser.add_argument('-H', '--http_port', default=HTTP_PORT)
+    parser.add_argument('-s', '--serial_port', default=receiver.SERIAL_PORT)
+    parser.add_argument('-w', '--ws_port', default=receiver.WS_PORT)
+    parser.add_argument('-H', '--http_port', default=receiver.HTTP_PORT)
 
     cli_args = parser.parse_args()
 
     # TODO: reconnecting serial connection
     Handler = http.server.SimpleHTTPRequestHandler
-    with socketserver.TCPServer(("127.0.0.1", HTTP_PORT), Handler) as httpd:
-        logging.info(f"HTTP server at port {HTTP_PORT}")
+    with socketserver.TCPServer(("127.0.0.1", cli_args.http_port), Handler) as httpd:
+        logging.info(f"HTTP server at port {cli_args.http_port}")
         hst = threading.Thread(target=httpd.serve_forever)
         hst.daemon = True
         hst.start()
