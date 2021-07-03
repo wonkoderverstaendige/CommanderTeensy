@@ -165,11 +165,17 @@ class TeensyCommander:
                 'digitalOut': bitlist(packet.digitalOut, nbits=8)},
                 cls=NumpyEncoder)
 
+        global xpos, y
+        xpos = y[self.n_packet]
+        
         if self.websocket_server:
             # if not self.n_packet % 1000:
             #     print('Packet: ', packet)
             if not self.n_packet % 5:
                 self.websocket_server.send_message_to_all(js)
+        
+    def get_xpos(self):
+        return xpos *10
 
 
 if __name__ == "__main__":

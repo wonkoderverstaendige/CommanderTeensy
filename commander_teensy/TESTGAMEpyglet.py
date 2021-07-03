@@ -78,7 +78,7 @@ def on_draw():
     window.clear()
     global changeColor
     
-    rectangle.x = rectangle.x + receiver.TeensyCommander.get_xpos()/2
+    rectangle.x = rectangle.x #+ rec.get_xpos()/2
     # TESTING
     #rectangle.x = rec.get_xpos()/2
     
@@ -92,25 +92,6 @@ def on_draw():
     batch.draw()
     fps_display.draw()
 
+pyglet.app.run()
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-s', '--serial_port', default=receiver.SERIAL_PORT)
-    parser.add_argument('-w', '--ws_port', default=receiver.WS_PORT)
-    parser.add_argument('-H', '--http_port', default=receiver.HTTP_PORT)
 
-    cli_args = parser.parse_args()
-    
-    pyglet.app.run()
-
-    # TODO: reconnecting serial connection
-    Handler = http.server.SimpleHTTPRequestHandler
-    with socketserver.TCPServer(("127.0.0.1", cli_args.http_port), Handler) as httpd:
-        logging.info(f"HTTP server at port {cli_args.http_port}")
-        hst = threading.Thread(target=httpd.serve_forever)
-        hst.daemon = True
-        hst.start()
-        tc = receiver.TeensyCommander(cli_args.serial_port, cli_args.ws_port)
-        tc.run_forever()
-
-    
