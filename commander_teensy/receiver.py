@@ -32,6 +32,7 @@ WS_PORT = 5678
 HTTP_PORT = 8000
 USE_DUMMY = True
 
+xpos = 0
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -166,7 +167,8 @@ class TeensyCommander:
                 cls=NumpyEncoder)
 
         global xpos, y
-        xpos = y[self.n_packet]
+        xpos = packet.states[0] #y[self.n_packet]
+        print(xpos)
         
         if self.websocket_server:
             # if not self.n_packet % 1000:

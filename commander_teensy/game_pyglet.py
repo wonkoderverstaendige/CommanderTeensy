@@ -16,40 +16,38 @@ import socketserver
 import logging
 import threading
 
-
 pyglet.options['vsync'] = True
 
-#SERIAL_PORT = 'COM6'
-
-width = 1000
-height = 1000
-
-config = pyglet.gl.Config(double_buffer=True)
-window = pyglet.window.Window(width, height,config=config)
-
-batch = pyglet.graphics.Batch()
-keyboard = key.KeyStateHandler()
+#width = 1000
+#height = 1000
 
 display = pyglet.canvas.Display()
 screen = display.get_default_screen()
 screen_width = screen.width
 screen_height = screen.height
 
-block_size = int(width/30)
-x = int(width/2 - block_size/2)
-y = int(height/2 - block_size/2)
+config = pyglet.gl.Config(double_buffer=True)
+window = pyglet.window.Window(screen_width, screen_height,config=config)
+
+batch = pyglet.graphics.Batch()
+keyboard = key.KeyStateHandler()
+
+block_size = int(screen_width/35)
+x = int(screen_width/2 - block_size/2)
+y = int(screen_height/2 - block_size/2)
 velocity = 5
 changeColor = True
+#testX = 0
 
 rectangle = shapes.Rectangle(x, y, block_size, block_size, color=(255,255,255), batch=batch)
-controlrect = shapes.Rectangle(width-block_size, height-block_size, block_size, block_size, color=(255,255,255), batch=batch)
+controlrect = shapes.Rectangle(screen_width-block_size, screen_height-block_size, block_size, block_size, color=(255,255,255), batch=batch)
 
 fps_display = pyglet.window.FPSDisplay(window=window)
 
 serial_port = 'COM5'
 websocket_port = 5678
 
-#rec = receiver.TeensyCommander(serial_port, websocket_port)
+rec = receiver.TeensyCommander(serial_port, websocket_port)
     
 def update(dt):
     pass
@@ -77,8 +75,10 @@ def on_key_press(symbol, modifiers):
 def on_draw():
     window.clear()
     global changeColor
+    global testX
     
-    rectangle.x = rectangle.x + receiver.TeensyCommander.get_xpos()/2
+    rectangle.x = rectangle.x + rec.get_xpos()/2
+    #rectangle.x = rectangle.x + testX/2
     # TESTING
     #rectangle.x = rec.get_xpos()/2
     
@@ -91,8 +91,11 @@ def on_draw():
         changeColor = True
     batch.draw()
     fps_display.draw()
+    
+pyglet.app.run()
 
-
+"""
+How can we use the receiver, if we don't make a receiver object in the game?
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--serial_port', default=receiver.SERIAL_PORT)
@@ -111,6 +114,9 @@ if __name__ == "__main__":
         hst.daemon = True
         hst.start()
         tc = receiver.TeensyCommander(cli_args.serial_port, cli_args.ws_port)
+        #testX = tc.get_xpos()/2
         tc.run_forever()
+
+"""
 
     
