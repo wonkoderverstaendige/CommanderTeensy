@@ -260,6 +260,7 @@ void processCommand (const uint8_t* buf, size_t buf_sz) {
   switch(ip->instruction){
       case instPIN_TOGGLE: 
         //playSine(1000, 1500);
+        // toggle pin for some seconds
         Serial.println("Toggle pin"); 
         break;
       case instPIN_HIGH: 
