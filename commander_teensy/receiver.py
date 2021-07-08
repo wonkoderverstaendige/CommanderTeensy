@@ -116,6 +116,7 @@ class PacketReceiver(serial.threaded.Packetizer):
 class TeensyCommander:
     def __init__(self, serial_port, websocket_port):
         self.n_packet = 0
+        self.webserver_socket = None
         try:
             self.ser = serial.Serial(serial_port)
         except serial.SerialException as e:
