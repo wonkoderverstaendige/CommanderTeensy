@@ -20,21 +20,10 @@ PacketSerial packetSerialA;
 PacketSerial packetSerialB;
 PacketSerial packetSerialExt;
 
-// GUItool: begin automatically generated code
-AudioSynthWaveform       waveform1;      //xy=573,189
-AudioEffectEnvelope      envelope1;      //xy=716,264
-AudioOutputAnalog        dac1;           //xy=865,191
-AudioConnection          patchCord1(waveform1, envelope1);
-AudioConnection          patchCord2(envelope1, dac1);
-AudioControlSGTL5000     sgtl5000_1;     //xy=635,407
-// GUItool: end automatically generated code
-
 
 // interval Timer creation
 IntervalTimer gatherTimer;
 elapsedMicros current_micros;
-elapsedMillis soundstart;
-int duration = 0;
 
 // Encoders and Sensors
 Encoder wheelEncoder(WHEEL_ENC_PINA, WHEEL_ENC_PINB);
@@ -132,12 +121,6 @@ void setup() {
   
   // Start audio
   Serial.begin(9600);
-  AudioMemory(20);
-  sgtl5000_1.enable();
-  sgtl5000_1.volume(0.5);
-  // End audio
-  playSine(800,100);
-  // End audio
   
   // analog input channels
   analogReadResolution(16);
@@ -206,19 +189,8 @@ void loop() {
     SerialUSB2.println("S_B overflow!");
   }
   
-  // TESTING
-  setTestPos();
 }
 
-void setTestPos() {
-  if (testposBool) {
-    testpos = 2;
-    testposBool = false;
-  } else{
-    testpos = -2;
-    testposBool = true;
-  }
-}
 
 void gather() {
   digitalWriteFast(7, LOW); // toggle pin to indicate gather start
@@ -237,9 +209,6 @@ void gather() {
   noInterrupts();
   long new_pos = wheelEncoder.read();
   interrupts();
-
-  // TESTING
-  new_pos = testpos;
 
   for (int p=0; p<8; p++) {
     packet.variables[p] = 0L;
@@ -262,18 +231,6 @@ void gather() {
   digitalWriteFast(7, HIGH); // toggle pin to indicate gather end
 }
 
-void playSine(int freq, int dur){
-  //if (!envelope1.isActive()) {
-    waveform1.begin(0.5, freq, WAVEFORM_SINE);
-    envelope1.noteOn();
-    envelope1.sustain(0);
-    envelope1.decay(0);
-    envelope1.attack(0);
-    envelope1.hold(dur);
-    //envelope1.release(1);
-    //envelope1.noteOff();
-  //}
-}
 
 void onPacketReceived(const uint8_t* buf, size_t buf_sz) {
   // if we receive a command, do what it tells us to do...
@@ -302,7 +259,7 @@ void processCommand (const uint8_t* buf, size_t buf_sz) {
   int target = ip->target;
   switch(ip->instruction){
       case instPIN_TOGGLE: 
-        playSine(1000, 1500);
+        //playSine(1000, 1500);
         Serial.println("Toggle pin"); 
         break;
       case instPIN_HIGH: 
@@ -320,7 +277,7 @@ void processCommand (const uint8_t* buf, size_t buf_sz) {
         int freq,dur;
         freq = atoi(freqChar);
         dur = atoi(durChar);
-        playSine(freq,dur);        
+        //playSine(freq,dur);        
         break;
       default: 
         Serial.println("Unknown command"); 

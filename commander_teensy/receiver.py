@@ -168,7 +168,7 @@ class TeensyCommander:
 
         global xpos, y
         xpos = packet.states[0] #y[self.n_packet]
-        print(xpos)
+        #print(xpos)
         
         if self.websocket_server:
             # if not self.n_packet % 1000:
