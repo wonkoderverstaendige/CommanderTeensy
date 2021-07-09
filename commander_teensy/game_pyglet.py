@@ -15,6 +15,8 @@ import http.server
 import socketserver
 import logging
 import threading
+import time
+import sounddevice as sd
 
 pyglet.options['vsync'] = True
 
@@ -25,9 +27,12 @@ display = pyglet.canvas.Display()
 screen = display.get_default_screen()
 screen_width = screen.width
 screen_height = screen.height
+scale =2
 
 config = pyglet.gl.Config(double_buffer=True)
-window = pyglet.window.Window(screen_width, screen_height,config=config)
+#window = pyglet.window.Window(int(round(screen_width/scale,0)), int(round(screen_height/scale,0)),config=config,resizable=True, fullscreen=True)
+window = pyglet.window.Window(screen_width, screen_height, config=config, vsync=True)
+#glScalef(2.0, 2.0, 2.0)
 
 batch = pyglet.graphics.Batch()
 keyboard = key.KeyStateHandler()
@@ -52,7 +57,15 @@ rec = receiver.TeensyCommander(serial_port, websocket_port)
 def update(dt):
     pass
         
-pyglet.clock.schedule_interval(update, 1/120.0)
+pyglet.clock.schedule_interval(update, 1/60.0)
+
+def play_sinewave(frequency, duration):
+    volume = 0.5
+    fs = 44100
+    samples = (np.sin(2*np.pi*np.arange(fs*duration)*frequency/fs)).astype(np.float32)
+    sd.play(samples, fs)
+
+    
 
 @window.event
 def on_key_press(symbol, modifiers):
@@ -77,7 +90,7 @@ def on_draw():
     global changeColor
     global testX
     
-    rectangle.x = rectangle.x + rec.get_xpos()/2
+    rectangle.x = abs(rec.get_xpos()/40%1950)-block_size;
     #rectangle.x = rectangle.x + testX/2
     # TESTING
     #rectangle.x = rec.get_xpos()/2
@@ -92,6 +105,7 @@ def on_draw():
     batch.draw()
     fps_display.draw()
     
+play_sinewave(1000, 2)
 pyglet.app.run()
 
 """
