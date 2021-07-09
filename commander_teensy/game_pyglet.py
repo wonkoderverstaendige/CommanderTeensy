@@ -20,9 +20,6 @@ import sounddevice as sd
 
 pyglet.options['vsync'] = True
 
-#width = 1000
-#height = 1000
-
 display = pyglet.canvas.Display()
 screen = display.get_default_screen()
 screen_width = screen.width
@@ -91,10 +88,6 @@ def on_draw():
     global testX
     
     rectangle.x = abs(rec.get_xpos()/40%1950)-block_size;
-    #rectangle.x = rectangle.x + testX/2
-    # TESTING
-    #rectangle.x = rec.get_xpos()/2
-    
     
     if changeColor:
         controlrect.color = (255,255,255) 
