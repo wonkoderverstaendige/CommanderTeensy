@@ -5,6 +5,8 @@ import threading
 import time
 from datetime import datetime
 
+from commander_teensy.__version__ import VERSION
+
 
 class CursesHandler(logging.Handler):
     def __init__(self, window):
@@ -59,7 +61,7 @@ class CursesUI(threading.Thread):
         self.tb_window.scrollok(True)
         self.tb_window.idlok(True)
         self.tb_window.leaveok(True)
-        title_str = "Commander Teensy v.???"
+        title_str = "Commander Teensy v" + VERSION
         self.tb_window.addstr(0, (self.width - len(title_str)) // 2, title_str, curses.color_pair(3))
 
         # Main Window
