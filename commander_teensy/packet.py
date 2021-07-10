@@ -32,7 +32,7 @@ DataPacketDesc = {'type': 'B',
 DataPacket = namedtuple('DataPacket', DataPacketDesc.keys())
 DataPacketStruct = '<' + ''.join(DataPacketDesc.values())
 DataPacketSize = struct.calcsize(DataPacketStruct)
-logging.info(f"Packet size: {DataPacketSize} Bytes in {DataPacketStruct}")
+logging.info(f"DataPacket size: {DataPacketSize} Bytes in {DataPacketStruct}")
 
 CommandPacketDesc = {'type': 'B',
                  'size': 'B',

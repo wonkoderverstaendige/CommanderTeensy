@@ -21,17 +21,22 @@ import struct
 import numpy as np
 
 from SerialDummy import SerialDummy
-from packet import DataPacket, DataPacketSize, DataPacketStruct, CommandPacketStruct
+from packet import *
 import base64
 
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 
-SERIAL_PORT = 'COM3'
+SERIAL_PORT = 'COM11'
 WS_PORT = 5678
 HTTP_PORT = 8000
-USE_DUMMY = True
+USE_DUMMY = False
 
+#Fs = 8000
+#f = 50
+#sample = 50000
+#x = np.arange(sample)
+#y = np.sin(2 * np.pi * f * x / Fs)
 xpos = 0
 
 class NumpyEncoder(json.JSONEncoder):
@@ -116,7 +121,6 @@ class PacketReceiver(serial.threaded.Packetizer):
 class TeensyCommander:
     def __init__(self, serial_port, websocket_port):
         self.n_packet = 0
-        self.websocket_server = None
         try:
             self.ser = serial.Serial(serial_port)
         except serial.SerialException as e:
@@ -151,7 +155,10 @@ class TeensyCommander:
         if message.startswith('digital'):
             pin = int(message.split('digital')[1]) - 16
             print(f'toggling pin {pin}')
-            cmd_p = struct.pack(CommandPacketStruct, *[1, 1, 7-pin])
+            cmd = CommandPacket(type=1, size=0, crc16=0, instruction=0, target=7-pin, data=b'1234', padding=None)
+            print(cmd)
+            cmd_p = struct.pack(CommandPacketStruct, *cmd[:-1])
+            print(cmd_p, len(cmd_p))
             enc = cobs.encode(cmd_p)
             self.ser.write(enc + b'\0')
 
@@ -166,23 +173,21 @@ class TeensyCommander:
                 'digitalIn': bitlist(packet.digitalIn, nbits=16),
                 'digitalOut': bitlist(packet.digitalOut, nbits=8)},
                 cls=NumpyEncoder)
-
-        global xpos, y
-        xpos = packet.states[0] 
         
+        global xpos, y
+        xpos = packet.states[0];
+        #xpos = y[self.n_packet]
+        
+
         if self.websocket_server:
             # if not self.n_packet % 1000:
             #     print('Packet: ', packet)
             if not self.n_packet % 5:
                 self.websocket_server.send_message_to_all(js)
-        
+
     def get_xpos(self):
-        return xpos *10
+        return xpos;
     
-    def send_msg(self,package):
-        self.ser.write(package)
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--serial_port', default=SERIAL_PORT)
