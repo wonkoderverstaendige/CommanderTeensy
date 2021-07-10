@@ -88,7 +88,7 @@ class PacketReceiver(serial.threaded.Packetizer):
             logging.error(f'Received unknown packet type: {packet_type} in packet {dec}')
 
     def handle_data_packet(self, arr):
-        """Handle a data packet by exracting it's fields.
+        """Handle a data packet by extracting it's fields.
         """
         if len(arr) != DataPacketSize:
             logging.warning(f"Incorrect data size. Is: {len(arr)}, expected: {DataPacketSize}. Packet: {arr}")
