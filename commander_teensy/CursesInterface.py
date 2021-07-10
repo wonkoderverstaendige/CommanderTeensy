@@ -1,5 +1,6 @@
 import curses
 import logging
+import sys
 import threading
 import time
 from datetime import datetime
@@ -22,7 +23,7 @@ class CursesHandler(logging.Handler):
             if lvl > 30:
                 color = 5
             if color > 40:
-                color = 6
+                color = 5
 
             self.window.addstr(msg + "\n", curses.color_pair(color))
 
@@ -88,44 +89,48 @@ class CursesUI(threading.Thread):
         try:
             w = self.main_window
             w.erase()
-            w.addstr(0, 2, "Serial " + self.commander.serial_port)
-            if self.commander.ser.is_open:
-                color = curses.color_pair(3)
+            if self.commander.serial_port != "DUMMY":
+                w.addstr(0, 2, "Serial " + self.commander.serial_port)
             else:
-                color = curses.color_pair(6)
+                w.addstr(0, 2, "Serial " + self.commander.serial_port, curses.color_pair(5))
+            status = self.commander.ser.is_open
+            color = curses.color_pair(3) if status else curses.color_pair(6)
+            status_txt = "OK" if status else "ERROR"
+            w.addstr(0, 10+len(self.commander.serial_port), status_txt, color)
 
-            w.addstr(0, 14, "Status", color)
-            w.addstr(1, 2, f"{self.commander.n_packet} packets/s")
+            w.addstr(1, 2, f"{self.commander.packets_per_second:.1f} packets/s")
+
             w.addstr(4, 2, f"PacketID {packet.packetID}")
             # w.refresh()
         except KeyboardInterrupt:
             logging.critical("INTERRUPT")
+            self.alive = False
         except BaseException as e:
             logging.error(f"packet printing fail: {e}")
 
-
     def run(self):
-        while True:
+        while self.alive:
             time.sleep(.1)
-            time_str = datetime.now().strftime("%d.%m.%Y %H:%M:%S.%f")[:-7]
+            time_str = datetime.now().strftime("%H:%M:%S %d.%m.%Y")
             self.tb_window.addstr(0, self.width-len(time_str), time_str)
             curses.noecho()
             if self.screen.getch() == ord('q'):
                 logging.info("User requested exit.")
                 self.alive = False
-            try:
-                key = self.screen.getkey()
-            except:
-                pass
+            # try:
+            #     key = self.screen.getkey()
+            #     logging.info(key)
+            # except:
+            #     pass
 
-            curses.echo()
+            # curses.echo()
             self.tb_window.refresh()
             self.main_window.refresh()
             self.log_window.border()
             self.log_window.refresh()
 
 
-
 if __name__ == '__main__':
     screen = curses.initscr()
     gui = CursesUI(screen=screen, commander=None, daemon=False)
+    curses.echo()

@@ -23,6 +23,9 @@ USE_DUMMY = True
 class TeensyCommander:
     def __init__(self, serial_port, http_port, ws_port, curses_screen):
         self.n_packet = 0
+        self.t_last_packet = time.time()
+        self.packets_per_second = 0
+
         self.alive = True
         self.shell_gui = CursesUI(self, curses_screen)
         self.log_writer = LogWriter()
@@ -41,6 +44,7 @@ class TeensyCommander:
                 logging.warning('Using serial dummy')
                 self.dummy = SerialDummy()
                 self.ser = self.dummy.ser
+                self.serial_port = 'DUMMY'
             else:
                 exit()
         self.serial_reader = serial.threaded.ReaderThread(self.ser, PacketReceiver).__enter__()
@@ -60,6 +64,10 @@ class TeensyCommander:
 
     def handle_packet(self, packet):
         self.n_packet += 1
+        t_now = time.time()
+        t_delta = t_now - self.t_last_packet
+        self.packets_per_second = 0.9 * self.packets_per_second + 0.1 / t_delta
+        self.t_last_packet = t_now
 
 
 def main(screen):
@@ -104,7 +112,7 @@ def main(screen):
         "Known serial ports: " + repr(sorted([comport.device for comport in serial.tools.list_ports.comports()])))
     logging.info(
         f"Launching Teensy Commander on serial port {cli_args.serial_port} and the web interface "
-        "on ports http:{cli_args.http_port} + ws:{cli_args.ws_port}")
+        f"on ports http:{cli_args.http_port} + ws:{cli_args.ws_port}")
     tc = TeensyCommander(serial_port=cli_args.serial_port,
                          http_port=cli_args.http_port,
                          ws_port=cli_args.ws_port,

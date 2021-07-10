@@ -3,6 +3,7 @@ from pathlib import Path
 from datetime import datetime
 import logging
 
+
 class LogWriter:
     def __init__(self):
         self.fname = Path(datetime.now().strftime("%Y%m%d-%H%M%S_%f")[:-3] + '.b64')

@@ -71,7 +71,7 @@ class WSServer(threading.Thread):
 
     def ws_msg_rcv(self, client, server, message):
         # TODO: Match pinout, which pins are input, which output
-        print(message)
+        logging.debug(f"WS_msg {message}")
         # if message.startswith('digital'):
         #     pin = int(message.split('digital')[1]) - 16
         #     print(f'toggling pin {pin}')
