@@ -1,13 +1,14 @@
-import pyglet
-from pyglet import shapes, gl
-from pyglet.window import key
+import argparse
 
 import numpy as np
-
-import argparse
-import logging
-import time
+import pyglet
 import sounddevice as sd
+from pyglet import shapes
+from pyglet.window import key
+import zmq
+
+from TeensyCommander import ZMQ_SERVER_PUB_PORT as ZMQ_CLIENT_SUB_PORT
+from TeensyCommander import ZMQ_SERVER_SUB_PORT as ZMQ_CLIENT_PUB_PORT
 
 
 class PygletGame(pyglet.window.Window):
@@ -42,11 +43,29 @@ class PygletGame(pyglet.window.Window):
         self.fps_display = pyglet.window.FPSDisplay(window=self)
         pyglet.clock.schedule_interval(self.update, 1 / 60.0)
 
+
+        self.zmq_ctx = zmq.Context()
+        self.zmq_sub = self.zmq_ctx.socket(zmq.SUB)
+        self.zmq_sub.setsockopt_string(zmq.SUBSCRIBE, "")
+        self.zmq_sub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_SUB_PORT}")
+
+        self.zmq_pub = self.zmq_ctx.socket(zmq.PUB)
+        self.zmq_pub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_PUB_PORT}")
+
         self.play_sinewave(1000, 0.1)
         pyglet.app.run()
 
     def update(self, dt):
-        pass
+        messages = []
+        while True:
+            try:
+                msg = self.zmq_sub.recv_pyobj(zmq.DONTWAIT)
+                messages.append(msg)
+            except zmq.Again:
+                break
+        if messages:
+            # Using last state variable to update the square position
+            self.x = (messages[-1].states[7]/2**16+0.5)*self.sw
 
     def play_sinewave(self, frequency, duration):
         volume = 0.5
@@ -88,5 +107,3 @@ if __name__ == "__main__":
     cli_args = parser.parse_args()
 
     game = PygletGame(screen_id=cli_args.screen)
-
-

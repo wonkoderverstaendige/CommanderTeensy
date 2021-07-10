@@ -2,6 +2,7 @@ import argparse
 import logging
 import time
 from datetime import datetime
+import zmq
 
 import serial
 import serial.threaded
@@ -17,6 +18,9 @@ from commander_teensy.CursesInterface import CursesUI
 SERIAL_PORT = 'COM3'
 WS_PORT = 5678
 HTTP_PORT = 8000
+ZMQ_SERVER_PUB_PORT = 5680
+ZMQ_SERVER_SUB_PORT = 5681
+
 USE_DUMMY = True
 
 
@@ -25,6 +29,13 @@ class TeensyCommander:
         self.n_packet = 0
         self.t_last_packet = time.time()
         self.packets_per_second = 0
+        self.zmq_ctx = zmq.Context()
+        self.zmq_pub = self.zmq_ctx.socket(zmq.PUB)
+        self.zmq_pub.bind(f'tcp://*:{ZMQ_SERVER_PUB_PORT}')
+
+        self.zmq_sub = self.zmq_ctx.socket(zmq.SUB)
+        self.zmq_sub.setsockopt_string(zmq.SUBSCRIBE, "")
+        self.zmq_sub.bind(f'tcp://*:{ZMQ_SERVER_SUB_PORT}')
 
         self.alive = True
         self.shell_gui = CursesUI(self, curses_screen)
@@ -68,6 +79,7 @@ class TeensyCommander:
         t_delta = t_now - self.t_last_packet
         self.packets_per_second = 0.9 * self.packets_per_second + 0.1 / t_delta
         self.t_last_packet = t_now
+        self.zmq_pub.send_pyobj(packet)
 
 
 def main(screen):
