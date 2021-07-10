@@ -7,7 +7,7 @@ from cobs import cobs
 import numpy as np
 import base64
 import logging
-from packet import DataPacket, DataPacketStruct
+from packet import DataPacket, DataPacketStruct, CommandPacket, CommandPacketStruct
 import struct
 import receiver
 import argparse
@@ -24,7 +24,8 @@ display = pyglet.canvas.Display()
 screen = display.get_default_screen()
 screen_width = screen.width
 screen_height = screen.height
-scale =2
+scale = 2
+trialcount = 0
 
 config = pyglet.gl.Config(double_buffer=True)
 #window = pyglet.window.Window(int(round(screen_width/scale,0)), int(round(screen_height/scale,0)),config=config,resizable=True, fullscreen=True)
@@ -37,7 +38,7 @@ keyboard = key.KeyStateHandler()
 block_size = int(screen_width/35)
 x = int(screen_width/2 - block_size/2)
 y = int(screen_height/2 - block_size/2)
-velocity = 5
+velocity = 50
 changeColor = True
 #testX = 0
 
@@ -56,13 +57,11 @@ def update(dt):
         
 pyglet.clock.schedule_interval(update, 1/60.0)
 
-def play_sinewave(frequency, duration):
+def play_sinewave(frequency, duration, waiting):
     volume = 0.5
     fs = 44100
     samples = (np.sin(2*np.pi*np.arange(fs*duration)*frequency/fs)).astype(np.float32)
     sd.play(samples, fs)
-
-    
 
 @window.event
 def on_key_press(symbol, modifiers):
@@ -79,7 +78,40 @@ def on_key_press(symbol, modifiers):
     elif symbol == key.RIGHT:
         x += velocity
         rectangle.x = x
+        
+def end_trial(frequency, duration, waiting):
+    play_sinewave(frequency, duration, waiting)
+    send_solenoid_cmd(10,5)
+    global trialcount,x
+    rectangle.x = int(screen_width/2 - block_size/2)
+    x = rectangle.x
+    trialcount = trialcount +1
+    print("Trial " + str(trialcount) + " finished")
+    sd.wait()
 
+def send_solenoid_cmd(pin, duration):
+    packet_type = 1
+    packet_size = struct.calcsize(DataPacketStruct)
+    packet_crc = 777
+    packet_instruction = 0
+    packet_target = pin
+    packet_message =  str(duration).encode()
+    
+    packet = []
+    packet.extend([packet_type, packet_size, packet_crc, packet_instruction,
+    packet_target, packet_message])
+
+    try:
+        ps = struct.pack(CommandPacketStruct, *packet)
+    except struct.error as e:
+        logging.error(e)
+        print(packet)
+        return
+
+    enc = cobs.encode(ps)
+    print (enc + b'\0')
+    rec.send_msg(enc + b'\0')
+    
 
 @window.event
 def on_draw():
@@ -87,18 +119,21 @@ def on_draw():
     global changeColor
     global testX
     
-    rectangle.x = abs(rec.get_xpos()/40%1950)-block_size;
+    #rectangle.x = abs(rec.get_xpos()/40%1950)-block_size;
     
+    if (rectangle.x > screen_width/10*9 or rectangle.x < screen_width/10*1):
+        end_trial(1000,0.5, True)
+        
     if changeColor:
         controlrect.color = (255,255,255) 
         changeColor = False
     else:
         controlrect.color = (0,0,0)
         changeColor = True
+        
     batch.draw()
     fps_display.draw()
     
-play_sinewave(1000, 2)
 pyglet.app.run()
 
 """

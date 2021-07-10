@@ -168,8 +168,7 @@ class TeensyCommander:
                 cls=NumpyEncoder)
 
         global xpos, y
-        xpos = packet.states[0] #y[self.n_packet]
-        #print(xpos)
+        xpos = packet.states[0] 
         
         if self.websocket_server:
             # if not self.n_packet % 1000:
@@ -179,6 +178,9 @@ class TeensyCommander:
         
     def get_xpos(self):
         return xpos *10
+    
+    def send_msg(self,package):
+        self.ser.write(package)
 
 
 if __name__ == "__main__":

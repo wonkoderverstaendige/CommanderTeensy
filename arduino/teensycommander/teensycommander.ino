@@ -24,6 +24,7 @@ PacketSerial packetSerialExt;
 // interval Timer creation
 IntervalTimer gatherTimer;
 elapsedMicros current_micros;
+elapsedMicros toggle_timer;
 
 // Encoders and Sensors
 Encoder wheelEncoder(WHEEL_ENC_PINA, WHEEL_ENC_PINB);
@@ -36,6 +37,8 @@ bool gatherNow = false;
 bool packetReady = false;
 
 int testpos = 0;
+int toggle_pin;
+int toggle_duration;
 bool testposBool = false;
 
 enum packetType: uint8_t {
@@ -188,7 +191,13 @@ void loop() {
   if (packetSerialB.overflow()) {
     SerialUSB2.println("S_B overflow!");
   }
-  
+
+  if (toggle_timer > toggle_duration && digitalRead(toggle_pin)==LOW){
+    digitalWriteFast(toggle_pin, HIGH);
+    delay(100000);
+    Serial.println("TOGGLE PIN HIGH");
+    Serial.println(digitalRead(toggle_pin));
+  }
 }
 
 
@@ -256,12 +265,15 @@ void processCommand (const uint8_t* buf, size_t buf_sz) {
   digitalWrite(6+buf[2], !digitalRead(6+buf[2]));
   struct inPacket* ip = (struct inPacket*)buf;
   char* message = (char*)ip->message;
-  int target = ip->target;
+  int target = (int*)ip->target;
   switch(ip->instruction){
       case instPIN_TOGGLE: 
-        //playSine(1000, 1500);
         // toggle pin for some seconds
-        Serial.println("Toggle pin"); 
+        toggle_pin = target;
+        toggle_duration = atoi(message);
+        toggle_timer = 0;
+        digitalWriteFast(target, LOW);
+        //digitalWriteFast(target, HIGH);
         break;
       case instPIN_HIGH: 
         digitalWriteFast(ip->target, HIGH);

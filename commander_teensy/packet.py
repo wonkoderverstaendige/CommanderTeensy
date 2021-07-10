@@ -34,7 +34,14 @@ DataPacketStruct = '<' + ''.join(DataPacketDesc.values())
 DataPacketSize = struct.calcsize(DataPacketStruct)
 logging.info(f"Packet size: {DataPacketSize} Bytes in {DataPacketStruct}")
 
-CommandPacket = {'type': 'B',
-                 'command': 'B',
-                 'data': 'B'}
-CommandPacketStruct = '<BBBx'
+CommandPacketDesc = {'type': 'B',
+                 'size': 'B',
+                 'crc16': 'H',
+                 'instruction': 'B',
+                 'target': 'B',
+                 'message': '18s',
+                 'padding': 'x'}
+CommandPacket = namedtuple('CommandPacket', CommandPacketDesc.keys())
+CommandPacketStruct = '<' + ''.join(CommandPacketDesc.values())
+CommandPacketSize = struct.calcsize(CommandPacketStruct)
+logging.info(f"CommandPacket size: {CommandPacketSize} Bytes in {CommandPacketStruct}")
