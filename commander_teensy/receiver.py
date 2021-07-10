@@ -39,12 +39,13 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
 
+
 def bitlist(num, nbits=16):
     """Integer to list of bits"""
     # TODO: pad zeros with string formatter
     bl = list(map(int, bin(num)[2:]))
     # pad with leading zeros
-    bl = [0]*(nbits-len(bl)) + bl
+    bl = [0] * (nbits - len(bl)) + bl
     return bl
 
 
@@ -52,7 +53,7 @@ class PacketReceiver(serial.threaded.Packetizer):
     commander = None
     log_file = None
 
-    def connection_made(self , transport):
+    def connection_made(self, transport):
         super(PacketReceiver, self).connection_made(transport)
         self.log_file = open(datetime.now().strftime("%Y%m%d-%H%M%S_%f")[:-3] + '.b64', 'w+b')
 
@@ -62,7 +63,7 @@ class PacketReceiver(serial.threaded.Packetizer):
         """
         # write data immediately to the log file, no matter what. For future parsing, we need to
         # re-append the line termination symbol.
-        self.log_file.write(base64.b64encode(arr + b'\0')+b'\n')
+        self.log_file.write(base64.b64encode(arr + b'\0') + b'\n')
 
         # COBS decode the array
         if not len(arr):
@@ -72,7 +73,7 @@ class PacketReceiver(serial.threaded.Packetizer):
         except cobs.DecodeError as e:
             logging.warning(str(e))
             return
-        
+
         packet_type = dec[0]
         if packet_type == 0:
             self.handle_data_packet(dec)
@@ -97,11 +98,11 @@ class PacketReceiver(serial.threaded.Packetizer):
         s = struct.unpack(DataPacketStruct, arr)
         dp = DataPacket(type=s[0], size=s[1], crc16=s[2], packetID=s[3], us_start=s[4], us_end=s[5],
                         analog=s[6:14], states=s[14:22], digitalIn=s[22], digitalOut=s[23], padding=None)
-        
+
         # let the TeensyCommander deal with the actual packet content
         if self.commander:
             self.commander.handle_packet(dp)
-        
+
     def handle_command_packet(self, arr):
         print("Command packet: ", arr)
 
@@ -149,21 +150,21 @@ class TeensyCommander:
         if message.startswith('digital'):
             pin = int(message.split('digital')[1]) - 16
             print(f'toggling pin {pin}')
-            cmd_p = struct.pack(CommandPacketStruct, *[1, 1, 7-pin])
+            cmd_p = struct.pack(CommandPacketStruct, *[1, 1, 7 - pin])
             enc = cobs.encode(cmd_p)
             self.ser.write(enc + b'\0')
 
     def run_forever(self):
-        while True: 
+        while True:
             time.sleep(1)
 
     def handle_packet(self, packet):
         self.n_packet += 1
         js = json.dumps({'us_start': packet.us_start, 'us_end': packet.us_end,
-                'analog': packet.analog, 'states': packet.states,
-                'digitalIn': bitlist(packet.digitalIn, nbits=16),
-                'digitalOut': bitlist(packet.digitalOut, nbits=8)},
-                cls=NumpyEncoder)
+                         'analog': packet.analog, 'states': packet.states,
+                         'digitalIn': bitlist(packet.digitalIn, nbits=16),
+                         'digitalOut': bitlist(packet.digitalOut, nbits=8)},
+                        cls=NumpyEncoder)
 
         if self.websocket_server:
             # if not self.n_packet % 1000:
@@ -182,7 +183,7 @@ if __name__ == "__main__":
 
     # TODO: reconnecting serial connection
     Handler = http.server.SimpleHTTPRequestHandler
-    with socketserver.TCPServer(("127.0.0.1", HTTP_PORT), Handler) as httpd:
+    with socketserver.TCPServer(("", HTTP_PORT), Handler) as httpd:
         logging.info(f"HTTP server at port {HTTP_PORT}")
         hst = threading.Thread(target=httpd.serve_forever)
         hst.daemon = True

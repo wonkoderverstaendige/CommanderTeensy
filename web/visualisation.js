@@ -177,7 +177,8 @@ documentReady(function() {
 });
 
 function start_websocket(ws_port) {
-    var ws = new ReconnectingWebSocket("ws://127.0.0.1:" + ws_port.toString());
+    const url = window.location.hostname;
+    const ws = new ReconnectingWebSocket(`ws://${url}:${ws_port.toString()}`);
     ws.reconnectInterval = 500;
     ws.maxReconnectInterval = 1000;
     ws.timeoutInterval = 400;
