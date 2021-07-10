@@ -1,0 +1,122 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L Sensor_Proximity:QRE1113 U1
+U 1 1 5FD8BEA9
+P 4150 3250
+F 0 "U1" H 4150 3567 50  0000 C CNN
+F 1 "QRE1113" H 4150 3476 50  0000 C CNN
+F 2 "OptoDevice:OnSemi_CASE100AQ" H 4150 3050 50  0001 C CNN
+F 3 "http://www.onsemi.com/pub/Collateral/QRE1113-D.PDF" H 4150 3350 50  0001 C CNN
+	1    4150 3250
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0101
+U 1 1 5FD8D6F8
+P 3600 3500
+F 0 "#PWR0101" H 3600 3250 50  0001 C CNN
+F 1 "GND" H 3605 3327 50  0000 C CNN
+F 2 "" H 3600 3500 50  0001 C CNN
+F 3 "" H 3600 3500 50  0001 C CNN
+	1    3600 3500
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3600 3500 3600 3350
+Wire Wire Line
+	3600 3350 3850 3350
+$Comp
+L power:+3.3V #PWR0102
+U 1 1 5FD8DD56
+P 3050 2700
+F 0 "#PWR0102" H 3050 2550 50  0001 C CNN
+F 1 "+3.3V" H 3065 2873 50  0000 C CNN
+F 2 "" H 3050 2700 50  0001 C CNN
+F 3 "" H 3050 2700 50  0001 C CNN
+	1    3050 2700
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+3.3V #PWR0103
+U 1 1 5FD8E2CF
+P 5000 2600
+F 0 "#PWR0103" H 5000 2450 50  0001 C CNN
+F 1 "+3.3V" H 5015 2773 50  0000 C CNN
+F 2 "" H 5000 2600 50  0001 C CNN
+F 3 "" H 5000 2600 50  0001 C CNN
+	1    5000 2600
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4700 2600 4700 2700
+Wire Wire Line
+	4700 3000 4700 3150
+$Comp
+L power:GND #PWR0104
+U 1 1 5FD8F12D
+P 4700 3500
+F 0 "#PWR0104" H 4700 3250 50  0001 C CNN
+F 1 "GND" H 4705 3327 50  0000 C CNN
+F 2 "" H 4700 3500 50  0001 C CNN
+F 3 "" H 4700 3500 50  0001 C CNN
+	1    4700 3500
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4700 3350 4700 3500
+Wire Wire Line
+	4450 3150 4700 3150
+Wire Wire Line
+	4450 3350 4700 3350
+Wire Wire Line
+	4700 3150 5100 3150
+Connection ~ 4700 3150
+$Comp
+L Device:R_POT RV1
+U 1 1 5FD90B86
+P 3450 2900
+F 0 "RV1" V 3243 2900 50  0000 C CNN
+F 1 "1k" V 3334 2900 50  0000 C CNN
+F 2 "Potentiometer_SMD:Potentiometer_Bourns_3214J_Horizontal" H 3450 2900 50  0001 C CNN
+F 3 "~" H 3450 2900 50  0001 C CNN
+	1    3450 2900
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	3050 2900 3300 2900
+Wire Wire Line
+	3050 2700 3050 2900
+Wire Wire Line
+	3450 3150 3450 3050
+Wire Wire Line
+	3450 3150 3850 3150
+$Comp
+L Device:R_POT RV2
+U 1 1 5FD924D7
+P 4700 2850
+F 0 "RV2" V 4493 2850 50  0000 C CNN
+F 1 "20k" V 4584 2850 50  0000 C CNN
+F 2 "Potentiometer_SMD:Potentiometer_Bourns_3214J_Horizontal" H 4700 2850 50  0001 C CNN
+F 3 "~" H 4700 2850 50  0001 C CNN
+	1    4700 2850
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	5000 2600 5000 2850
+Wire Wire Line
+	5000 2850 4850 2850
+$EndSCHEMATC
