@@ -176,7 +176,11 @@ class WebSocketHandler(StreamRequestHandler):
     def handle(self):
         while self.keep_alive:
             if not self.handshake_done:
-                self.handshake()
+                try:
+                    self.handshake()
+                except AssertionError:
+                    logging.error(f"Websocket handshake failed for client {self.client_address}. Most likely a stale connection.")
+                    self.keep_alive = False
             elif self.valid_client:
                 self.read_next_message()
 
