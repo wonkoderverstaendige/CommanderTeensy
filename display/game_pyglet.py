@@ -11,12 +11,21 @@ from TeensyCommander import ZMQ_SERVER_PUB_PORT as ZMQ_CLIENT_SUB_PORT
 from TeensyCommander import ZMQ_SERVER_SUB_PORT as ZMQ_CLIENT_PUB_PORT
 
 
+def play_sinewave(frequency, duration):
+    volume = 0.5
+    fs = 44100
+    samples = (np.sin(2 * np.pi * np.arange(fs * duration) * frequency / fs)).astype(np.float32)
+    sd.play(samples, fs)
+
+
 class PygletGame(pyglet.window.Window):
     def __init__(self, fullscreen=False, resizable=True, vsync=True, buffered=True, screen_id=0):
         self._display = pyglet.canvas.Display()
         self._screen = self.display.get_screens()[screen_id]
-        self.sw = self.screen.width
-        self.sh = self.screen.height
+        # self.sw = self.screen.width
+        # self.sh = self.screen.height
+        self.sw = 600
+        self.sh = 480
         config = pyglet.gl.Config(double_buffer=buffered)
         pyglet.options['vsync'] = vsync
 
@@ -43,7 +52,6 @@ class PygletGame(pyglet.window.Window):
         self.fps_display = pyglet.window.FPSDisplay(window=self)
         pyglet.clock.schedule_interval(self.update, 1 / 60.0)
 
-
         self.zmq_ctx = zmq.Context()
         self.zmq_sub = self.zmq_ctx.socket(zmq.SUB)
         self.zmq_sub.setsockopt_string(zmq.SUBSCRIBE, "")
@@ -52,10 +60,11 @@ class PygletGame(pyglet.window.Window):
         self.zmq_pub = self.zmq_ctx.socket(zmq.PUB)
         self.zmq_pub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_PUB_PORT}")
 
-        self.play_sinewave(1000, 0.1)
+        play_sinewave(1000, 0.1)
         pyglet.app.run()
 
     def update(self, dt):
+        # TODO: State updates should take all received packets into account
         messages = []
         while True:
             try:
@@ -66,12 +75,6 @@ class PygletGame(pyglet.window.Window):
         if messages:
             # Using last state variable to update the square position
             self.x = (messages[-1].states[7]/2**16+0.5)*self.sw
-
-    def play_sinewave(self, frequency, duration):
-        volume = 0.5
-        fs = 44100
-        samples = (np.sin(2 * np.pi * np.arange(fs * duration) * frequency / fs)).astype(np.float32)
-        sd.play(samples, fs)
 
     def on_key_press(self, symbol, modifiers):
         if symbol in [key.RETURN, key.ESCAPE, key.Q]:
@@ -85,6 +88,10 @@ class PygletGame(pyglet.window.Window):
             self.x += self.velocity
         elif motion == key.MOTION_BACKSPACE:
             self.x = (self.sw - self.block_size) // 2
+        elif motion == key.MOTION_BEGINNING_OF_LINE:
+            self.x = 0
+        elif motion == key.MOTION_END_OF_LINE:
+            self.x = self.sw - self.block_size
 
     def on_draw(self):
         self.clear()
