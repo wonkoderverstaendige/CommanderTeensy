@@ -3,6 +3,7 @@ import logging
 import time
 from datetime import datetime
 import zmq
+import queue
 
 import serial
 import serial.threaded
@@ -27,8 +28,8 @@ USE_DUMMY = True
 class TeensyCommander:
     def __init__(self, serial_port, http_port, ws_port, curses_screen):
         self.n_packet = 0
-        self.t_last_packet = time.time()
         self.packets_per_second = 0
+        self.packet_timings = []
         self.zmq_ctx = zmq.Context()
         self.zmq_pub = self.zmq_ctx.socket(zmq.PUB)
         self.zmq_pub.bind(f'tcp://*:{ZMQ_SERVER_PUB_PORT}')
@@ -75,10 +76,13 @@ class TeensyCommander:
 
     def handle_packet(self, packet):
         self.n_packet += 1
-        t_now = time.time()
-        t_delta = t_now - self.t_last_packet
-        self.packets_per_second = 0.9 * self.packets_per_second + 0.1 / t_delta
-        self.t_last_packet = t_now
+        t_now = time.time_ns() * 0.000000001
+        self.packet_timings.append(t_now)
+        t_delta = t_now - (self.packet_timings[0] if len(self.packet_timings) < 1000 else self.packet_timings.pop(0))
+        try:
+            self.packets_per_second = len(self.packet_timings) / t_delta
+        except ZeroDivisionError:
+            self.packets_per_second = 0
         self.zmq_pub.send_pyobj(packet)
 
 

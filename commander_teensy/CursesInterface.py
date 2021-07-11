@@ -100,7 +100,7 @@ class CursesUI(threading.Thread):
             status_txt = "OK" if status else "ERROR"
             w.addstr(0, 10+len(self.commander.serial_port), status_txt, color)
 
-            w.addstr(1, 2, f"{self.commander.packets_per_second:.1f} packets/s")
+            w.addstr(1, 2, f"{self.commander.packets_per_second:06.1f} packets/s")
 
             w.addstr(4, 2, f"PacketID {packet.packetID}")
             # w.refresh()
