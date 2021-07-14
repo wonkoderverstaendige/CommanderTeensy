@@ -5,7 +5,7 @@ import threading
 import time
 from datetime import datetime
 
-from commander_teensy.__version__ import VERSION
+from __version__ import VERSION
 
 
 class CursesHandler(logging.Handler):
