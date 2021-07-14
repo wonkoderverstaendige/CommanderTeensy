@@ -10,13 +10,13 @@ import serial.threaded
 import serial.tools.list_ports
 import curses
 
-from Packet import PacketReceiver
-from LogWriter import LogWriter
-from SerialDummy import SerialDummy
-from WebInterface import HTTPServer, WSServer
-from CursesInterface import CursesUI
+from commander_teensy.Packet import PacketReceiver
+from commander_teensy.LogWriter import LogWriter
+from commander_teensy.SerialDummy import SerialDummy
+from commander_teensy.WebInterface import HTTPServer, WSServer
+from commander_teensy.CursesInterface import CursesUI
 
-SERIAL_PORT = 'COM3'
+SERIAL_PORT = 'COM5'
 WS_PORT = 5678
 HTTP_PORT = 8000
 ZMQ_SERVER_PUB_PORT = 5680
