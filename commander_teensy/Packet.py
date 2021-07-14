@@ -112,7 +112,22 @@ class PacketReceiver(Packetizer):
 
 
     def unpack_command_packet(self, arr):
-        print("Command packet: ", arr)
+        """Handle a command packet by extracting its fields.
+        """
+        if len(arr) != CommandPacketSize:
+            logging.warning(f"Incorrect data size. Is: {len(arr)}, expected: {CommandPacketSize}. Packet: {arr}")
+            return
+
+        # stupid manual struct unpacking is stupid
+        s = struct.unpack(CommandPacketStruct, arr)
+        dp = CommandPacket(type=s[0], size=s[1], crc16=s[2], instruction=s[3], target=s[4], message=s[5:18], padding=None)
+
+        # hand over packets to interested parties...
+        for fn_packet_callback in self.packet_callbacks:
+            try:
+                fn_packet_callback(dp)
+            except BaseException as e:
+                logging.critical(e)
 
     def connection_lost(self, exc):
         if exc:

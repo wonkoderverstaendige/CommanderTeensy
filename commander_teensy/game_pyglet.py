@@ -9,7 +9,6 @@ import base64
 import logging
 from Packet import DataPacket, DataPacketStruct, CommandPacket, CommandPacketStruct
 import struct
-import receiver
 import argparse
 import http.server
 import socketserver
