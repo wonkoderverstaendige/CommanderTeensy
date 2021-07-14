@@ -7,7 +7,7 @@ from cobs import cobs
 import numpy as np
 import base64
 import logging
-from packet import DataPacket, DataPacketStruct, CommandPacket, CommandPacketStruct
+from Packet import DataPacket, DataPacketStruct, CommandPacket, CommandPacketStruct
 import struct
 import receiver
 import argparse

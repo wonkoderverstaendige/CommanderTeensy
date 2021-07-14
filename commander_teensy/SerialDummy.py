@@ -7,7 +7,7 @@ import time
 import serial
 from cobs import cobs
 
-from .Packet import DataPacketStruct
+from Packet import DataPacketStruct
 
 
 # uint8_t type;          // 1 B, packet type

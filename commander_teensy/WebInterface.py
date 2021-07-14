@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .websocket_server import WebsocketServer as ReconnectingWebsocketServer
+from websocket_server import WebsocketServer as ReconnectingWebsocketServer
 
 WEB_DIRECTORY = (Path(__file__).parent / '../web').resolve().as_posix()
 
