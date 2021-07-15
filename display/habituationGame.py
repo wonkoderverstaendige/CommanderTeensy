@@ -117,4 +117,3 @@ if __name__ == "__main__":
     cli_args = parser.parse_args()
 
     game = HabituationGame(screen_id=cli_args.screen)
-
