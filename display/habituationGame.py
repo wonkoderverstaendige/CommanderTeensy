@@ -40,14 +40,14 @@ class HabituationGame(pyglet.window.Window):
 
         self.block_size = self.sw // 35
         self.x = (random.randint(0, self.sw) - self.block_size)
-        #self.x = (self.sw - self.block_size) // 2
         self.y = (self.sh - self.block_size) // 2
         self.velocity = 5
         self.changeColor = True
         
         self.azimuth = [int(self.sw/2-self.block_size/2 - self.sw*0.35), int(self.sw/2-self.block_size/2 + self.sw*0.35)]
         self.start = datetime.datetime.now()
-        self.centerrect = self.start + datetime.timedelta(seconds=10)
+        delay = random.gauss(10, 2)
+        self.centerrect = self.start + datetime.timedelta(seconds=delay)
         self.reward = self.centerrect + datetime.timedelta(seconds=1)
         self.restart = self.reward + datetime.timedelta(seconds=1)
 
@@ -73,7 +73,8 @@ class HabituationGame(pyglet.window.Window):
         
     def resettrial(self):
         self.start = datetime.datetime.now()
-        self.centerrect = self.start + datetime.timedelta(seconds=10)
+        delay = random.gauss(10, 2)
+        self.centerrect = self.start + datetime.timedelta(seconds=delay)
         self.reward = self.centerrect + datetime.timedelta(seconds=1)
         self.restart = self.reward + datetime.timedelta(seconds=1)
         self.rectangle.opacity = 255
@@ -108,19 +109,6 @@ class HabituationGame(pyglet.window.Window):
         self.batch.draw()
         self.fps_display.draw()
 
-    
-    def start(self):
-        self.rectangle.x = int(self.sw/2 - self.block_size/2)
-        self.x = self.rectangle.x
-        time.sleep(10)
-        
-    def playGame(self):
-        sleep(10)
-        self.rectangle.x = int(self.sw/2 - self.block_size/2)
-        self.x = self.rectangle.x
-        time.sleep(1)
-        self.rectangle.opacity = 0
-        time.sleep(15)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
