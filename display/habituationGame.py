@@ -6,9 +6,9 @@ import sounddevice as sd
 from pyglet import shapes
 from pyglet.window import key
 import zmq
-
-from commander_teensy.TeensyCommander import ZMQ_SERVER_PUB_PORT as ZMQ_CLIENT_SUB_PORT
-from commander_teensy.TeensyCommander import ZMQ_SERVER_SUB_PORT as ZMQ_CLIENT_PUB_PORT
+import random
+import time
+import datetime
 
 
 def play_sinewave(frequency, duration):
@@ -18,7 +18,7 @@ def play_sinewave(frequency, duration):
     sd.play(samples, fs)
 
 
-class PygletGame(pyglet.window.Window):
+class HabituationGame(pyglet.window.Window):
     def __init__(self, fullscreen=False, resizable=True, vsync=True, buffered=True, screen_id=0):
         self._display = pyglet.canvas.Display()
         self._screen = self.display.get_screens()[screen_id]
@@ -29,7 +29,7 @@ class PygletGame(pyglet.window.Window):
         config = pyglet.gl.Config(double_buffer=buffered)
         pyglet.options['vsync'] = vsync
 
-        super(PygletGame, self).__init__(self.sw, self.sh, config=config, vsync=True, fullscreen=fullscreen,
+        super(HabituationGame, self).__init__(self.sw, self.sh, config=config, vsync=True, fullscreen=fullscreen,
                                          resizable=resizable)
 
         self.px_scale = 2.0
@@ -39,10 +39,17 @@ class PygletGame(pyglet.window.Window):
         self.keyboard = key.KeyStateHandler()
 
         self.block_size = self.sw // 35
-        self.x = (self.sw - self.block_size) // 2
+        self.x = (random.randint(0, self.sw) - self.block_size)
+        #self.x = (self.sw - self.block_size) // 2
         self.y = (self.sh - self.block_size) // 2
         self.velocity = 5
         self.changeColor = True
+        
+        self.azimuth = [int(self.sw/2-self.block_size/2 - self.sw*0.35), int(self.sw/2-self.block_size/2 + self.sw*0.35)]
+        self.start = datetime.datetime.now()
+        self.centerrect = self.start + datetime.timedelta(seconds=10)
+        self.reward = self.centerrect + datetime.timedelta(seconds=1)
+        self.restart = self.reward + datetime.timedelta(seconds=1)
 
         self.rectangle = shapes.Rectangle(self.x, self.y, self.block_size, self.block_size,
                                           color=(255, 255, 255), batch=self.batch)
@@ -52,29 +59,25 @@ class PygletGame(pyglet.window.Window):
         self.fps_display = pyglet.window.FPSDisplay(window=self)
         pyglet.clock.schedule_interval(self.update, 1 / 60.0)
 
-        self.zmq_ctx = zmq.Context()
-        self.zmq_sub = self.zmq_ctx.socket(zmq.SUB)
-        self.zmq_sub.setsockopt_string(zmq.SUBSCRIBE, "")
-        self.zmq_sub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_SUB_PORT}")
-
-        self.zmq_pub = self.zmq_ctx.socket(zmq.PUB)
-        self.zmq_pub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_PUB_PORT}")
-
-        play_sinewave(1000, 0.1)
         pyglet.app.run()
 
     def update(self, dt):
-        # TODO: State updates should take all received packets into account
-        messages = []
-        while True:
-            try:
-                msg = self.zmq_sub.recv_pyobj(zmq.DONTWAIT)
-                messages.append(msg)
-            except zmq.Again:
-                break
-        if messages:
-            # Using last state variable to update the square position
-            self.x = (messages[-1].states[7]/2**16+0.5)*self.sw
+        if (datetime.datetime.now() > self.centerrect):
+            self.rectangle.x = int(self.sw/2 - self.block_size/2)
+            self.x = self.rectangle.x
+        if (datetime.datetime.now() > self.reward):
+            self.rectangle.opacity = 0
+        if (datetime.datetime.now() > self.restart):
+            self.resettrial()
+
+        
+    def resettrial(self):
+        self.start = datetime.datetime.now()
+        self.centerrect = self.start + datetime.timedelta(seconds=10)
+        self.reward = self.centerrect + datetime.timedelta(seconds=1)
+        self.restart = self.reward + datetime.timedelta(seconds=1)
+        self.rectangle.opacity = 255
+        self.x = random.choice(self.azimuth)
 
     def on_key_press(self, symbol, modifiers):
         if symbol in [key.RETURN, key.ESCAPE, key.Q]:
@@ -96,8 +99,6 @@ class PygletGame(pyglet.window.Window):
     def on_draw(self):
         self.clear()
         self.rectangle.x = self.x
-        if (self.rectangle.x > self.sw/10*9 or self.rectangle.x < self.sw/10*1):
-            self.end_trial(1000, 0.5)
         if self.changeColor:
             self.controlrect.color = (255, 255, 255)
             self.changeColor = False
@@ -107,41 +108,19 @@ class PygletGame(pyglet.window.Window):
         self.batch.draw()
         self.fps_display.draw()
 
-
-    def send_solenoid_cmd(pin, duration):
-    packet_type = 1
-    packet_size = struct.calcsize(DataPacketStruct)
-    packet_crc = 777
-    packet_instruction = 0
-    packet_target = pin
-    packet_message =  str(duration).encode()
-
-    packet = []
-    packet.extend([packet_type, packet_size, packet_crc, packet_instruction,
-    packet_target, packet_message])
-
-    try:
-        ps = struct.pack(CommandPacketStruct, *packet)
-    except struct.error as e:
-        logging.error(e)
-        print(packet)
-        return
-
-    enc = cobs.encode(ps)
-    print (enc + b'\0')
-    self.zmq_pub.send_string(enc + b'\0')
-    #rec.send_msg(enc + b'\0')
     
-    def end_trial(self, frequency, duration):
-        # TODO
-        play_sinewave(frequency, duration)
-        self.send_solenoid_cmd(10,5)
-        #global trialcount
+    def start(self):
         self.rectangle.x = int(self.sw/2 - self.block_size/2)
         self.x = self.rectangle.x
-        #trialcount = trialcount +1
-        #print("Trial " + str(trialcount) + " finished")
-        sd.wait()
+        time.sleep(10)
+        
+    def playGame(self):
+        sleep(10)
+        self.rectangle.x = int(self.sw/2 - self.block_size/2)
+        self.x = self.rectangle.x
+        time.sleep(1)
+        self.rectangle.opacity = 0
+        time.sleep(15)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -149,4 +128,5 @@ if __name__ == "__main__":
 
     cli_args = parser.parse_args()
 
-    game = PygletGame(screen_id=cli_args.screen)
+    game = HabituationGame(screen_id=cli_args.screen)
+
