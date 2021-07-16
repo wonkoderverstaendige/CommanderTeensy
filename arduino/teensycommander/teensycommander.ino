@@ -187,6 +187,10 @@ void loop() {
   }
 
   digitalWriteFast(LOOP_INDICATOR, LOW);
+
+  for (size_t i = 0; i < nrPulsePins; ++i) {
+    pulsePins[i]->update();
+  }
 }
 
 
@@ -247,7 +251,7 @@ void processState(dataPacket* packet) {
 
 void setUpTooglePins(){
   for (size_t i = 0; i < nrPulsePins; ++i) {
-      pulsePins[i] = new Pinpulse('pin' +i,i,HIGH,current_micros);
+      pulsePins[i] = new Pinpulse('pin' +i,i,LOW,current_micros);
   }
 }
 
