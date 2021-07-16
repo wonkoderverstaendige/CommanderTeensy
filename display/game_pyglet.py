@@ -1,5 +1,5 @@
 import argparse
-
+import cobs
 import numpy as np
 import pyglet
 import sounddevice as sd
@@ -127,10 +127,10 @@ class PygletGame(pyglet.window.Window):
             print(packet)
             return
 
-    enc = cobs.encode(ps)
-    print (enc + b'\0')
-    self.zmq_pub.send_string(enc + b'\0')
-    #rec.send_msg(enc + b'\0')
+        enc = cobs.encode(ps)
+        print (enc + b'\0')
+        self.zmq_pub.send_string(enc + b'\0')
+        #rec.send_msg(enc + b'\0')
     
     def end_trial(self, frequency, duration):
         # TODO
