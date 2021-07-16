@@ -36,3 +36,7 @@ void Pinpulse::restart(){
 void Pinpulse::stop(){
 	this->run = false;
 }
+
+byte Pinpulse::getId(){
+  return this->pinID;
+}

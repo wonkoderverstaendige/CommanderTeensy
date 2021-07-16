@@ -109,23 +109,23 @@ class PygletGame(pyglet.window.Window):
 
 
     def send_solenoid_cmd(pin, duration):
-    packet_type = 1
-    packet_size = struct.calcsize(DataPacketStruct)
-    packet_crc = 777
-    packet_instruction = 0
-    packet_target = pin
-    packet_message =  str(duration).encode()
+        packet_type = 1
+        packet_size = struct.calcsize(DataPacketStruct)
+        packet_crc = 777
+        packet_instruction = 0
+        packet_target = pin
+        packet_message =  str(duration).encode()
 
-    packet = []
-    packet.extend([packet_type, packet_size, packet_crc, packet_instruction,
-    packet_target, packet_message])
+        packet = []
+        packet.extend([packet_type, packet_size, packet_crc, packet_instruction,
+        packet_target, packet_message])
 
-    try:
-        ps = struct.pack(CommandPacketStruct, *packet)
-    except struct.error as e:
-        logging.error(e)
-        print(packet)
-        return
+        try:
+            ps = struct.pack(CommandPacketStruct, *packet)
+        except struct.error as e:
+            logging.error(e)
+            print(packet)
+            return
 
     enc = cobs.encode(ps)
     print (enc + b'\0')

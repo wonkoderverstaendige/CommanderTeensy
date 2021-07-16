@@ -26,5 +26,7 @@ class Pinpulse {
   	void restart();
    
     void setTimer(unsigned long duration);
+
+    byte getId();
 };
 #endif

@@ -252,8 +252,7 @@ void processCommand (const uint8_t* buf, size_t buf_sz) {
   int target = (int*)ip->target;
   switch(ip->instruction){
       case instPIN_TOGGLE: 
-        //pin1.setTimer(5000);
-        pulsePins[target]->setTimer(5000);
+        pulsePins[target]->setTimer(atoi(message));
         break;
       case instPIN_HIGH: 
         digitalWriteFast(ip->target, HIGH);
