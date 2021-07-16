@@ -8,6 +8,8 @@
 #define WHEEL_ENC_PINA 5
 #define WHEEL_ENC_PINB 6
 #define WHEEL_ENC_SW 7
+#define GATHER_INDICATOR 10
+#define LOOP_INDICATOR 11
 
 #define EXTSERIAL Serial1
 #define RESOLUTION 12
