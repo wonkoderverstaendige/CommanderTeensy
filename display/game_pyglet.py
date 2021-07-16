@@ -22,10 +22,10 @@ class PygletGame(pyglet.window.Window):
     def __init__(self, fullscreen=False, resizable=True, vsync=True, buffered=True, screen_id=0):
         self._display = pyglet.canvas.Display()
         self._screen = self.display.get_screens()[screen_id]
-        # self.sw = self.screen.width
-        # self.sh = self.screen.height
-        self.sw = 600
-        self.sh = 480
+        self.sw = self.screen.width
+        self.sh = self.screen.height
+        # self.sw = 600
+        # self.sh = 480
         config = pyglet.gl.Config(double_buffer=buffered)
         pyglet.options['vsync'] = vsync
 
@@ -38,7 +38,7 @@ class PygletGame(pyglet.window.Window):
         self.batch = pyglet.graphics.Batch()
         self.keyboard = key.KeyStateHandler()
 
-        self.block_size = self.sw // 35
+        self.block_size = self.sw // 15
         self.x = (self.sw - self.block_size) // 2
         self.y = (self.sh - self.block_size) // 2
         self.velocity = 5
