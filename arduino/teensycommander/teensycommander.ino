@@ -54,7 +54,8 @@ enum Intructions: uint8_t {
   instPIN_HIGH,
   instPIN_LOW,
   instSET_STATE,
-  instTRIG_AUDIO
+  instTRIG_AUDIO,
+  instPIN_PULSE
 };
 
 
@@ -291,6 +292,14 @@ void processCommand (const uint8_t* buf, size_t buf_sz) {
         freq = atoi(freqChar);
         dur = atoi(durChar);
         //playSine(freq,dur);        
+        break;
+      case instPIN_PULSE:
+        // toggle pin for some seconds
+        toggle_pin = target;
+        toggle_duration = atoi(message);
+        toggle_timer = 0;
+        digitalWriteFast(target, LOW);
+        //digitalWriteFast(target, HIGH);
         break;
       default: 
         Serial.println("Unknown command"); 
