@@ -7,13 +7,13 @@ class Pinpulse {
     byte pinID;
   	unsigned int pinNr;
   	boolean polarity;
-  	unsigned long nextChangeTime = 0;
+  	unsigned long nextChangeTime;
   	boolean run;
-  	unsigned long turnOffTime;
+    elapsedMicros current_micros;
     
   public:
     // Setup pin 
-    Pinpulse(byte pinID, unsigned long timePinOn, unsigned long timePinOff, unsigned int pinNr);
+    Pinpulse(byte pinID, unsigned int pinNr, boolean polarity, elapsedMicros current_micros);
     // Setup the pin as OUTPUT
 	  //pinMode(pinNr, OUTPUT);
     
@@ -24,5 +24,7 @@ class Pinpulse {
   	void stop();
   	
   	void restart();
+   
+    void setTimer(unsigned long duration);
 };
 #endif
