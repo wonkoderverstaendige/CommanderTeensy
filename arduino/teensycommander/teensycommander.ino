@@ -195,9 +195,9 @@ void loop() {
 
   if (toggle_timer > toggle_duration && digitalRead(toggle_pin)==LOW){
     digitalWriteFast(toggle_pin, HIGH);
-    delay(100000);
-    Serial.println("TOGGLE PIN HIGH");
-    Serial.println(digitalRead(toggle_pin));
+    //delay(100000);
+    //Serial.println("TOGGLE PIN HIGH");
+    //Serial.println(digitalRead(toggle_pin));
   }
 }
 
