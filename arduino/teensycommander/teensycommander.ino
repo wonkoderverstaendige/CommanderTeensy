@@ -5,6 +5,8 @@
 #define WHEEL_ENC_PINA 5
 #define WHEEL_ENC_PINB 6
 #define WHEEL_ENC_SW 7
+#define GATHER_INDICATOR 10
+#define LOOP_INDICATOR 11
 
 #define EXTSERIAL Serial1
 
@@ -35,11 +37,12 @@ enum packetType: uint8_t {
   ptACK
 };
 
-enum Intructions: uint8_t {
+enum Instructions: uint8_t {
   instPIN_TOGGLE,
   instPIN_HIGH,
   instPIN_LOW,
-  instSET_STATE
+  instSET_STATE,
+  instPULSE
 };
 
 volatile unsigned long packetCount = 0;
@@ -87,12 +90,6 @@ unsigned char counter = 0;
 dataPacket State;
 
 void setup() {
-  // analog input channels
-  analogReadResolution(16);
-  for (int i=0; i<8; i++) {
-    pinMode(14+i, INPUT_PULLDOWN);
-  }
-  
   // digital input channels
   for (int i=0; i<5; i++) {
     pinMode(0+i, INPUT_PULLUP);
@@ -103,6 +100,12 @@ void setup() {
   // digital output channels
   for (int i=0; i<4; i++) {
     pinMode(9+i, OUTPUT);
+  }
+
+  // analog input channels
+  analogReadResolution(16);
+  for (int i=0; i<8; i++) {
+    pinMode(14+i, INPUT_PULLDOWN);
   }
 
   pinMode(ledPin, OUTPUT);
@@ -121,6 +124,7 @@ void setup() {
 }
 
 void loop() {
+  digitalWriteFast(LOOP_INDICATOR, HIGH);
   // check current serial status
   packetSerialA.update();
   packetSerialB.update();
@@ -151,10 +155,11 @@ void loop() {
   if (packetSerialB.overflow()) {
     SerialUSB2.println("S_B overflow!");
   }
+  digitalWriteFast(LOOP_INDICATOR, LOW);
 }
 
 void gather() {
-  digitalWriteFast(7, LOW); // toggle pin to indicate gather start
+  digitalWriteFast(GATHER_INDICATOR, LOW); // toggle pin to indicate gather start
   dataPacket packet;
   packet.us_start = current_micros;
   
@@ -167,7 +172,7 @@ void gather() {
     packet.digitalIn |= digitalReadFast(i) << i;
   }
 
-  noInterrupts();
+  noInterrupts(); // are those needed?
   long new_pos = wheelEncoder.read();
   interrupts();
 
@@ -188,7 +193,7 @@ void gather() {
 
   State = packet;
   packetReady = true;
-  digitalWriteFast(7, HIGH); // toggle pin to indicate gather end
+  digitalWriteFast(GATHER_INDICATOR, HIGH); // toggle pin to indicate gather end
 }
 
 void onPacketReceived(const uint8_t* buffer, size_t size) {
