@@ -1,26 +1,28 @@
-from cobs import cobs
-from packet import DataPacketDesc, DataPacketStruct
-import struct
-import serial
-from serial.serialutil import SerialBase
-import time
-import threading
 import logging
 import math
+import struct
+import threading
+import time
 
-    # uint8_t type;          // 1 B, packet type
-    # uint8_t size;          // 1 B, packet size
-    # uint16_t crc16;        // 2 B, CRC16
-    # unsigned long packetID;// 4 B, running packet count
-    
-    # unsigned long ts_start;// 4 B, gather start timestamp
-    # unsigned long ts_end;  // 4 B, transmit timestamp
-    # uint16_t analog[8];    // 16 B, ADC values
-    # int16_t states[8];     // 16 B, state variables (encoder, speed, etc)
-    
-    # uint16_t digitalIn;    // 2 B, digital inputs
-    # uint8_t digitalOut;    // 1 B, digital outputs
-    # uint8_t padding[0];    // 1 B, align to 4B
+import serial
+from cobs import cobs
+
+from .Packet import DataPacketStruct
+
+
+# uint8_t type;          // 1 B, packet type
+# uint8_t size;          // 1 B, packet size
+# uint16_t crc16;        // 2 B, CRC16
+# unsigned long packetID;// 4 B, running packet count
+
+# unsigned long ts_start;// 4 B, gather start timestamp
+# unsigned long ts_end;  // 4 B, transmit timestamp
+# uint16_t analog[8];    // 16 B, ADC values
+# int16_t states[8];     // 16 B, state variables (encoder, speed, etc)
+
+# uint16_t digitalIn;    // 2 B, digital inputs
+# uint8_t digitalOut;    // 1 B, digital outputs
+# uint8_t padding[0];    // 1 B, align to 4B
 
 class SerialDummy(threading.Thread):
     def __init__(self):
@@ -51,19 +53,19 @@ class SerialDummy(threading.Thread):
         packet_crc = 777
         packet_id = self.n_packet
 
-        packet_us_start = self.n_packet * self.interval * 1000 % (2**32-1)
-        packet_us_end = self.n_packet * self.interval * 1000 % (2**32-1)
+        packet_us_start = self.n_packet * self.interval * 1000 % (2 ** 32 - 1)
+        packet_us_end = self.n_packet * self.interval * 1000 % (2 ** 32 - 1)
         packet_analog = self.analog()
         packet_states = self.states()
 
-        packet_digitalIn = int(self.n_packet/10 % 2**16)
-        packet_digitalOut = int(self.n_packet/10 % 2**8)
+        packet_digitalIn = int(self.n_packet / 10 % 2 ** 16)
+        packet_digitalOut = int(self.n_packet / 10 % 2 ** 8)
         # print(packet_digitalOut)
 
         packet = []
         packet.extend([packet_type, packet_size, packet_crc, packet_id,
-        packet_us_start, packet_us_end, *packet_analog, *packet_states,
-        packet_digitalIn, packet_digitalOut])
+                       packet_us_start, packet_us_end, *packet_analog, *packet_states,
+                       packet_digitalIn, packet_digitalOut])
 
         try:
             ps = struct.pack(DataPacketStruct, *packet)
@@ -71,20 +73,20 @@ class SerialDummy(threading.Thread):
             logging.error(e)
             print(packet)
             return
-        
+
         enc = cobs.encode(ps)
-        return enc + b'\0'  
+        return enc + b'\0'
 
     def analog(self):
         arr = []
         for n in range(8):
-            val = int((math.sin((self.n_packet+n)/(2**(n+1)))+1) * (2**(n+8)-1))
+            val = int((math.sin((self.n_packet + n) / (2 ** (n + 1))) + 1) * (2 ** (n + 8) - 1))
             arr.append(val)
         return arr
 
     def states(self):
         arr = []
         for n in range(8):
-            val = int((math.sin((self.n_packet+n+500)/(2**(n+1)))) * (2**(n+8)-1))
+            val = int((math.sin((self.n_packet + n + 500) / (2 ** (n + 1)))) * (2 ** (n + 8) - 1))
             arr.append(val)
         return arr
