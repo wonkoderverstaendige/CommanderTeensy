@@ -1,50 +1,34 @@
 #include "Pinpulse.h"
-Pinpulse::Pinpulse(byte pinID, unsigned long timePinOn, unsigned long timePinOff, unsigned int pinNr) {
+Pinpulse::Pinpulse(byte pinID, unsigned int pinNr, boolean polarity) {
   this->pinID = pinID;
-  this->timePinOn = timePinOn;
-  this->timePinOff = timePinOff;
   this->pinNr = pinNr;
-
+  // set default value for polarity
+  this->polarity = polarity;
   pinMode(pinID, OUTPUT);
-  //this->pinState = digitalRead(pinNr);
-  unsigned long currentTime = millis();
-  if (currentTime >= timePinOn){
-	  this->pinState = HIGH;
-  }
   this->run = true;
-  this->turnOffTime = millis() + timePinOff;
 }
 
 void Pinpulse::update() {
 	if(run){
-		unsigned long currentTime = millis();
-		// If timePinOn is in the future, we need to toggle it to HIGH
-		if (currentTime >= timePinOn){
-			this->pinState = HIGH;
-		}
-		if(currentTime >= turnOffTime) {
+		if(current_micros >= this->nextChangeTime) {
 			// Change pinState accordingly
-			if(pinState == HIGH) {
-				pinState = LOW;
-			}else{
-				pinState = HIGH;
-			}
-			// Actually change the state of the pin
-			digitalWrite(pinNr, pinState);
+      digitalWriteFast(this->pinNr,pinState);
+    else{
+      digitalWriteFast(this->pinNr,!pinState);
 		}
 	}else{}
 }
 
-void Pinpulse::restart(unsigned long timePinOn, unsigned long timePinOff){
-	this->run = true;
-	this->timePinOn = timePinOn;
-	this->timePinOff = timePinOff;
+void setTimer(unsigned long duration){
+  this->nextChangeTime = current_micros + duration;
 }
 
-void Pinpulse::cancel(){
+void Pinpulse::restart(){
+	this->run = true;
+	this->nextChangeTime = 0;
+  digitalWriteFast(this->pinNr,pinState);
+}
+
+void Pinpulse::stop(){
 	this->run = false;
-}
-
-void Pinpulse::continuepulse(){
-	this->run = true;
 }

@@ -5,10 +5,8 @@ class Pinpulse {
   
   private:
     byte pinID;
-  	unsigned long timePinOn;
-  	unsigned long timePinOff;
   	unsigned int pinNr;
-  	boolean pinState;
+  	boolean polarity;
   	unsigned long nextChangeTime = 0;
   	boolean run;
   	unsigned long turnOffTime;
@@ -23,11 +21,8 @@ class Pinpulse {
     void update();
 	
   	// Stop updating etc.
-  	void cancel();
-
-    // Continue after cancelling
-  	void continuepulse();
+  	void stop();
   	
-  	void restart(unsigned long timePinOn, unsigned long timePinOff);
+  	void restart();
 };
 #endif
