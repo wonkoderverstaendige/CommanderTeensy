@@ -12,9 +12,6 @@
 #define LOOP_INDICATOR 11
 
 #define EXTSERIAL Serial1
-#define RESOLUTION 12
-
-#define PIN_TOGGLE1 10;
 
 FastCRC16 CRC16;
 PacketSerial packetSerialA;
@@ -25,7 +22,6 @@ PacketSerial packetSerialExt;
 // interval Timer creation
 IntervalTimer gatherTimer;
 elapsedMicros current_micros;
-elapsedMicros toggle_timer;
 
 // Encoders and Sensors
 Encoder wheelEncoder(WHEEL_ENC_PINA, WHEEL_ENC_PINB);
@@ -37,11 +33,6 @@ int last_packet_took = 0;
 bool gatherNow = false;
 bool packetReady = false;
 
-int testpos = 0;
-int toggle_pin;
-int toggle_duration;
-bool testposBool = false;
-
 enum packetType: uint8_t {
   ptSTATUS,
   ptCOMMAND,
@@ -50,7 +41,7 @@ enum packetType: uint8_t {
   ptACK
 };
 
-enum Instructions: uint8_t {
+enum Intructions: uint8_t {
   instPIN_TOGGLE,
   instPIN_HIGH,
   instPIN_LOW,
@@ -121,6 +112,14 @@ unsigned char counter = 0;
 dataPacket State;
 
 void setup() {
+ 
+  
+  // analog input channels
+  analogReadResolution(16);
+  for (int i=0; i<8; i++) {
+    pinMode(14+i, INPUT_PULLDOWN);
+  }
+  
   // digital input channels
   for (int i=0; i<5; i++) {
     pinMode(0+i, INPUT_PULLUP);
@@ -131,12 +130,6 @@ void setup() {
   // digital output channels
   for (int i=0; i<4; i++) {
     pinMode(9+i, OUTPUT);
-  }
-
-  // analog input channels
-  analogReadResolution(16);
-  for (int i=0; i<8; i++) {
-    pinMode(14+i, INPUT_PULLDOWN);
   }
 
   pinMode(ledPin, OUTPUT);
@@ -157,7 +150,6 @@ void setup() {
 }
 
 void loop() {
-  digitalWriteFast(LOOP_INDICATOR, HIGH);
   // check current serial status
   packetSerialA.update();
   packetSerialB.update();
@@ -188,7 +180,9 @@ void loop() {
   if (packetSerialB.overflow()) {
     SerialUSB2.println("S_B overflow!");
   }
+
   digitalWriteFast(LOOP_INDICATOR, LOW);
+
 }
 
 
@@ -213,7 +207,6 @@ void gather() {
   for (int p=0; p<8; p++) {
     packet.variables[p] = 0L;
   }
-  
   packet.variables[0] = new_pos;
   packet.variables[1] = 1;
   packet.variables[2] = 2;
@@ -231,15 +224,12 @@ void gather() {
   digitalWriteFast(GATHER_INDICATOR, HIGH); // toggle pin to indicate gather end
 }
 
-
-void onPacketReceived(const uint8_t* buf, size_t buf_sz) {
+void onPacketReceived(const uint8_t* buffer, size_t size) {
   // if we receive a command, do what it tells us to do...
-  SerialUSB2.write(buf, buf_sz);
-  if (buf[0] == ptCOMMAND) {
-    SerialUSB2.write("CMD\n");
-    //inPacket packet_rcv = inPacket();
-    processCommand(buf, buf_sz);
+  if (buffer[0] == ptCOMMAND) {
+    processCommand(buffer, size);
   } else {
+    SerialUSB2.write(buffer, size);
   }
 }
 
@@ -260,10 +250,10 @@ void processCommand (const uint8_t* buf, size_t buf_sz) {
   switch(ip->instruction){
       case instPIN_TOGGLE: 
         // toggle pin for some seconds
-        toggle_pin = target;
-        toggle_duration = atoi(message);
-        toggle_timer = 0;
-        digitalWriteFast(target, LOW);
+        //toggle_pin = target;
+        //toggle_duration = atoi(message);
+        //toggle_timer = 0;
+        //digitalWriteFast(target, LOW);
         //digitalWriteFast(target, HIGH);
         break;
       case instPIN_HIGH: 
@@ -275,20 +265,12 @@ void processCommand (const uint8_t* buf, size_t buf_sz) {
       case instSET_STATE: 
         Serial.println("instSet_State"); 
         break;
-      case instTRIG_AUDIO: 
-        char * freqChar = strtok(message, ",");
-        char * durChar = strtok(NULL, ",");
-        int freq,dur;
-        freq = atoi(freqChar);
-        dur = atoi(durChar);
-        //playSine(freq,dur);        
-        break;
       case instPIN_PULSE:
         // toggle pin for some seconds
-        toggle_pin = target;
-        toggle_duration = atoi(message);
-        toggle_timer = 0;
-        digitalWriteFast(target, LOW);
+        //toggle_pin = target;
+        //toggle_duration = atoi(message);
+        //toggle_timer = 0;
+        //digitalWriteFast(target, LOW);
         //digitalWriteFast(target, HIGH);
         break;
       default: 
