@@ -23,7 +23,6 @@ void Pinpulse::update() {
   }else{}
 }
 
-
 void Pinpulse::setTimer(unsigned long duration){
   this->nextChangeTime = this->current_micros + duration;
 }
