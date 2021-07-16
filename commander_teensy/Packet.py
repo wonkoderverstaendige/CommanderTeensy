@@ -44,6 +44,24 @@ CommandPacket = {'type': 'B',
                  'data': 'B'}
 CommandPacketStruct = '<BBBx'
 
+PinPulsePacket = {'pin': 'B',
+                        'duration': 'H'}
+
+PinPulsePacketStruct = '<BHx'
+
+
+def pack_data_packet(packet_obj):
+    raise NotImplemented('data packing not ready.')
+
+
+def pack_command_packet(packet_obj):
+    logging.debug(f'Packing CommandPacket {packet_obj}')
+    pin = packet_obj['pin']
+    duration = packet_obj['data']
+    cmd_p = struct.pack(PinPulsePacketStruct, *[pin, duration])
+    return cobs.encode(cmd_p)
+    # self.ser.write(enc + b'\0')
+
 
 class PacketReceiver(Packetizer):
     raw_callbacks = []
@@ -100,14 +118,15 @@ class PacketReceiver(Packetizer):
         for fn_packet_callback in self.packet_callbacks:
             try:
                 fn_packet_callback(dp)
+            # TODO: EVIL! DON'T! NO! NO! NO!
             except BaseException as e:
                 logging.critical(e)
-
+                raise
 
     def unpack_command_packet(self, arr):
-        print("Command packet: ", arr)
+        logging.debug(f"Unpacking CommandPacket: {arr}")
 
     def connection_lost(self, exc):
         if exc:
-            print('Serial connection loss: ', exc)
+            logging.debug(f'Serial connection loss: {exc}')
             traceback.print_exc()

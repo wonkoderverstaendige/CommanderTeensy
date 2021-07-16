@@ -3,22 +3,20 @@ import logging
 import time
 from datetime import datetime
 import zmq
-import queue
+import threading
 
 import serial
 import serial.threaded
 import serial.tools.list_ports
 import curses
 
-from commander_teensy.Packet import PacketReceiver
+from commander_teensy.Packet import PacketReceiver, pack_command_packet
 from commander_teensy.LogWriter import LogWriter
 from commander_teensy.SerialDummy import SerialDummy
-from commander_teensy.WebInterface import HTTPServer, WSServer
+from commander_teensy.WebInterface import WebInterface, WS_PORT, HTTP_PORT
 from commander_teensy.CursesInterface import CursesUI
 
 SERIAL_PORT = 'COM3'
-WS_PORT = 5678
-HTTP_PORT = 8000
 ZMQ_SERVER_PUB_PORT = 5680
 ZMQ_SERVER_SUB_PORT = 5681
 
@@ -40,18 +38,18 @@ class TeensyCommander:
 
         self.alive = True
         self.shell_gui = CursesUI(self, curses_screen)
+        time.sleep(0.05)  # give some time to let log display catch all startup messages
+
         self.log_writer = LogWriter()
         self.serial_port = serial_port
-        self.http_port = http_port
-        self.ws_port = ws_port
-        self.http_server = HTTPServer(http_port=self.http_port)
-        self.ws_server = WSServer(ws_port=self.ws_port)
+
+        self.web_server = WebInterface(http_port, ws_port, self)
 
         try:
             self.ser = serial.Serial(self.serial_port)
             self.ser.flushInput()
         except serial.SerialException as e:
-            logging.error("Can't find teensy. {}".format(e))
+            logging.error("Can't find serial device: {}".format(e))
             if USE_DUMMY:
                 logging.warning('Using serial dummy')
                 self.dummy = SerialDummy()
@@ -64,10 +62,13 @@ class TeensyCommander:
         # Data receive callbacks
         self.serial_reader.raw_callbacks.append(self.log_writer.handle_array)
         self.serial_reader.packet_callbacks.append(self.handle_packet)
-        self.serial_reader.packet_callbacks.append(self.ws_server.handle_packet)
+        self.serial_reader.packet_callbacks.append(self.web_server.handle_packet)
         self.serial_reader.packet_callbacks.append(self.shell_gui.handle_packet)
 
+        self.zmq_subscriber = threading.Thread(target=self.subscriber, daemon=True)
+
     def run_forever(self):
+        self.zmq_subscriber.start()
         while self.alive and self.shell_gui.alive:
             if not self.shell_gui.is_alive():
                 logging.critical("Shell GUI died!")
@@ -84,6 +85,34 @@ class TeensyCommander:
         except ZeroDivisionError:
             self.packets_per_second = 0
         self.zmq_pub.send_pyobj(packet)
+
+    def subscriber(self):
+        while True:
+            try:
+                msg = self.zmq_sub.recv_pyobj()
+            except zmq.ZMQBaseError as e:
+                if e.errno == zmq.ETERM:
+                    break
+                else:
+                    raise
+            if msg:
+                self.send_packet(msg)
+
+    def send(self, msg):
+        logging.debug('Send message: ' + str(msg))
+        self.pack_packet(msg)
+
+    def pack_packet(self, message):
+        logging.debug(f'Packing message: {message}')
+        if message.startswith('digital'):
+            pin = int(message.split('digital_')[1]) - 16
+            packed = pack_command_packet({'pin': pin, 'data': 25})
+            self.send_packet(packed)
+        else:
+            logging.debug('Unknown type!')
+
+    def send_packet(self, packet):
+        logging.debug('Send packet ' + str(packet))
 
 
 def main(screen):

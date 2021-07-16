@@ -9,6 +9,8 @@ import numpy as np
 
 from .websocket_server import WebsocketServer as ReconnectingWebsocketServer
 
+WS_PORT = 5678
+HTTP_PORT = 8000
 WEB_DIRECTORY = (Path(__file__).parent / '../web').resolve().as_posix()
 
 
@@ -39,7 +41,6 @@ class HTTPServer(threading.Thread):
 
         logging.info(f"Launching HTTP server for directory {WEB_DIRECTORY} on port {http_port}")
         self.server = socketserver.TCPServer(("", http_port), HttpRequestHandler)
-        self.start()
 
     def run(self):
         self.server.serve_forever()
@@ -53,31 +54,30 @@ class WSServer(threading.Thread):
         self.server.set_fn_new_client(self.ws_client_connect)
         self.server.set_fn_client_left(self.ws_client_left)
         self.server.set_fn_message_received(self.ws_msg_rcv)
-        self.start()
+        self.msg_callback = None
 
     def run(self):
         self.server.run_forever()
 
     @staticmethod
     def ws_client_connect(client, server):
-        # server.send_message_to_all(f'New client connected: {client} to server {server}')
         client_id = "Unknown" if client is None else client["id"]
-        logging.info(f'Client {client_id} connected to WebSocket server.')
+        logging.debug(f'Client {client_id} connected to WebSocket server.')
 
     @staticmethod
     def ws_client_left(client, server):
         client_id = "Unknown" if client is None else client["id"]
-        logging.info(f'Client {client_id} disconnected from WebSocket server.')
+        logging.debug(f'Client {client_id} disconnected from WebSocket server.')
 
     def ws_msg_rcv(self, client, server, message):
         # TODO: Match pinout, which pins are input, which output
-        logging.debug(f"WS_msg {message}")
-        # if message.startswith('digital'):
-        #     pin = int(message.split('digital')[1]) - 16
-        #     print(f'toggling pin {pin}')
-        #     cmd_p = struct.pack(CommandPacketStruct, *[1, 1, 7 - pin])
-        #     enc = cobs.encode(cmd_p)
-        #     self.ser.write(enc + b'\0')
+        logging.debug(f"WS_msg {message} from {client}")
+        try:
+            if self.msg_callback is not None:
+                self.msg_callback(message)
+        except BaseException as e:
+            logging.error(e)
+            raise
 
     def handle_packet(self, packet):
         if packet.type == 0:
@@ -87,3 +87,19 @@ class WSServer(threading.Thread):
                              'digitalOut': bitlist(packet.digitalOut, nbits=8)},
                             cls=NumpyEncoder)
             self.server.send_message_to_all(js)
+
+
+class WebInterface:
+    def __init__(self, http_port, ws_port, teensy_commander):
+        self.http_port = http_port
+        self.ws_port = ws_port
+        self.http_server = HTTPServer(http_port=self.http_port)
+        self.tc = teensy_commander
+        self.ws_server = WSServer(ws_port=self.ws_port)
+        self.ws_server.msg_callback = self.tc.send
+
+        self.http_server.start()
+        self.ws_server.start()
+
+    def handle_packet(self, packet):
+        self.ws_server.handle_packet(packet)
