@@ -1,12 +1,9 @@
 #include <Encoder.h>
 #include <FastCRC.h>
 #include <PacketSerial.h>
-#include <Audio.h>
-#include <Wire.h>
-#include <SPI.h>
-#include <SD.h>
-#include <SerialFlash.h>
 #include <math.h>
+#include "Pinpulse.h"
+//#include <Pinpulse.h>
 
 #define WHEEL_ENC_PINA 5
 #define WHEEL_ENC_PINB 6
@@ -14,6 +11,8 @@
 
 #define EXTSERIAL Serial1
 #define RESOLUTION 12
+
+#define PIN_TOGGLE1 10;
 
 FastCRC16 CRC16;
 PacketSerial packetSerialA;
@@ -123,9 +122,6 @@ dataPacket State;
 void setup() {
   analogWriteResolution(RESOLUTION);
   
-  // Start audio
-  Serial.begin(9600);
-  
   // analog input channels
   analogReadResolution(16);
   for (int i=0; i<8; i++) {
@@ -199,6 +195,8 @@ void loop() {
     //Serial.println("TOGGLE PIN HIGH");
     //Serial.println(digitalRead(toggle_pin));
   }
+
+  //pulse1.update();
 }
 
 
