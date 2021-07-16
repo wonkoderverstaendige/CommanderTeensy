@@ -18,10 +18,11 @@ PacketSerial packetSerialA;
 PacketSerial packetSerialB;
 PacketSerial packetSerialExt;
 
-
 // interval Timer creation
 IntervalTimer gatherTimer;
 elapsedMicros current_micros;
+
+Pinpulse** pulsePins = new Pinpulse*[10];
 
 // Encoders and Sensors
 Encoder wheelEncoder(WHEEL_ENC_PINA, WHEEL_ENC_PINB);
@@ -112,7 +113,10 @@ unsigned char counter = 0;
 dataPacket State;
 
 void setup() {
- 
+
+  pulsePins[1] = new Pinpulse('pin1',10,HIGH,current_micros);
+  pulsePins[2] = new Pinpulse('pin2',11,HIGH,current_micros);
+  pulsePins[3] = new Pinpulse('pin3',12,HIGH,current_micros);
   
   // analog input channels
   analogReadResolution(16);
@@ -182,7 +186,6 @@ void loop() {
   }
 
   digitalWriteFast(LOOP_INDICATOR, LOW);
-
 }
 
 
@@ -249,12 +252,8 @@ void processCommand (const uint8_t* buf, size_t buf_sz) {
   int target = (int*)ip->target;
   switch(ip->instruction){
       case instPIN_TOGGLE: 
-        // toggle pin for some seconds
-        //toggle_pin = target;
-        //toggle_duration = atoi(message);
-        //toggle_timer = 0;
-        //digitalWriteFast(target, LOW);
-        //digitalWriteFast(target, HIGH);
+        //pin1.setTimer(5000);
+        pulsePins[target]->setTimer(5000);
         break;
       case instPIN_HIGH: 
         digitalWriteFast(ip->target, HIGH);
