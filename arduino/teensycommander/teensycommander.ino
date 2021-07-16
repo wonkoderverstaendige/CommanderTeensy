@@ -22,7 +22,8 @@ PacketSerial packetSerialExt;
 IntervalTimer gatherTimer;
 elapsedMicros current_micros;
 
-Pinpulse** pulsePins = new Pinpulse*[10];
+int nrPulsePins = 10;
+Pinpulse** pulsePins = new Pinpulse*[nrPulsePins];
 
 // Encoders and Sensors
 Encoder wheelEncoder(WHEEL_ENC_PINA, WHEEL_ENC_PINB);
@@ -113,10 +114,10 @@ unsigned char counter = 0;
 dataPacket State;
 
 void setup() {
-
-  pulsePins[1] = new Pinpulse('pin1',10,HIGH,current_micros);
-  pulsePins[2] = new Pinpulse('pin2',11,HIGH,current_micros);
-  pulsePins[3] = new Pinpulse('pin3',12,HIGH,current_micros);
+  setUpTooglePins();
+  //pulsePins[1] = new Pinpulse('pin1',10,HIGH,current_micros);
+  //pulsePins[2] = new Pinpulse('pin2',11,HIGH,current_micros);
+  //pulsePins[3] = new Pinpulse('pin3',12,HIGH,current_micros);
   
   // analog input channels
   analogReadResolution(16);
@@ -242,6 +243,21 @@ void processState(dataPacket* packet) {
     digitalWriteFast(9+i, (counter >> i) & 0x1);
   }
   counter++;
+}
+
+void setUpTooglePins(){
+  for (size_t i = 0; i < nrPulsePins; ++i) {
+      pulsePins[i] = new Pinpulse('pin' +i,i,HIGH,current_micros);
+  }
+}
+
+Pinpulse* getTooglePinById(byte id){
+  for (size_t i = 0; i < nrPulsePins; ++i) {
+      if (pulsePins[i]->getId() == id){
+        return pulsePins[i];
+      }
+  }
+  return 0;
 }
 
 int programCount = 0;
