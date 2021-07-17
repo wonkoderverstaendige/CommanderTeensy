@@ -7,8 +7,10 @@ from pyglet import shapes
 from pyglet.window import key
 import zmq
 
-from TeensyCommander import ZMQ_SERVER_PUB_PORT as ZMQ_CLIENT_SUB_PORT
-from TeensyCommander import ZMQ_SERVER_SUB_PORT as ZMQ_CLIENT_PUB_PORT
+from commander_teensy.TeensyCommander import ZMQ_SERVER_PUB_PORT as ZMQ_CLIENT_SUB_PORT
+from commander_teensy.TeensyCommander import ZMQ_SERVER_SUB_PORT as ZMQ_CLIENT_PUB_PORT
+
+TEENSY_STATE_VARIABLE_IDX = 7
 
 
 def play_sinewave(frequency, duration):

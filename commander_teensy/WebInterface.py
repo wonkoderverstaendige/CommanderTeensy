@@ -50,7 +50,7 @@ class WSServer(threading.Thread):
     def __init__(self, ws_port):
         super(WSServer, self).__init__(daemon=True)
         logging.info(f"Starting Websocket Server on port {ws_port}")
-        self.server = ReconnectingWebsocketServer(host="*", port=ws_port)
+        self.server = ReconnectingWebsocketServer(host="0.0.0.0", port=ws_port)
         self.server.set_fn_new_client(self.ws_client_connect)
         self.server.set_fn_client_left(self.ws_client_left)
         self.server.set_fn_message_received(self.ws_msg_rcv)
