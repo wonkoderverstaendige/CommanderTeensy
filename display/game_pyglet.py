@@ -83,7 +83,7 @@ class PygletGame(pyglet.window.Window):
                 break
         if messages:
             # Using last state variable to update the square position
-            self.x = self.x_zero - (messages[-1].states[7]/2**16+0.5)*self.sw
+            self.x = (messages[-1].states[7]/2**16+0.5)*self.sw
 
     def on_key_press(self, symbol, modifiers):
         if symbol in [key.RETURN, key.ESCAPE, key.Q]:
@@ -126,7 +126,6 @@ class PygletGame(pyglet.window.Window):
     def end_trial(self, tone_frequency=1000, tone_duration=300):
         self.trial_active = False
         self.rectangle.x = int(self.sw / 2 - self.block_size / 2)
-        self.x_zero = self.rectangle.x
         self.trigger_solenoid(solenoid=0, pulse_duration=25)
         play_sinewave(tone_frequency, tone_duration / 1000)
         # sd.wait()
