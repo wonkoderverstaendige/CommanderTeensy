@@ -3,7 +3,6 @@ import logging
 import struct
 import traceback
 from collections import namedtuple
-from datetime import datetime
 
 from cobs import cobs
 from serial.threaded import Packetizer
@@ -39,20 +38,26 @@ DataPacketStruct = '<' + ''.join(DataPacketDesc.values())
 DataPacketSize = struct.calcsize(DataPacketStruct)
 logging.info(f"Packet size: {DataPacketSize} Bytes in {DataPacketStruct}")
 
+Instructions = {'low': 0,
+                'high': 1,
+                'toggle': 2,
+                'pulse': 3,
+                'state': 4}
+
 CommandPacketDesc = {'type': 'B',
-                 'size': 'B',
-                 'crc16': 'H',
-                 'instruction': 'B',
-                 'target': 'B',
-                 'message': '18s',
-                 'padding': 'x'}
+                     'size': 'B',
+                     'crc16': 'H',
+                     'instruction': 'B',
+                     'target': 'B',
+                     'data': '8B',
+                     'padding': '2x'}
 CommandPacket = namedtuple('CommandPacket', CommandPacketDesc.keys())
 CommandPacketStruct = '<' + ''.join(CommandPacketDesc.values())
 CommandPacketSize = struct.calcsize(CommandPacketStruct)
 logging.info(f"CommandPacket size: {CommandPacketSize} Bytes in {CommandPacketStruct}")
 
 PinPulsePacket = {'pin': 'B',
-                        'duration': 'H'}
+                  'duration': 'H'}
 
 PinPulsePacketStruct = '<BHx'
 
@@ -63,11 +68,16 @@ def pack_data_packet(packet_obj):
 
 def pack_command_packet(packet_obj):
     logging.debug(f'Packing CommandPacket {packet_obj}')
-    pin = packet_obj['pin']
-    duration = packet_obj['data']
-    cmd_p = struct.pack(PinPulsePacketStruct, *[pin, duration])
-    return cobs.encode(cmd_p)
-    # self.ser.write(enc + b'\0')
+    # cp = CommandPacket(type=1, size=CommandPacketSize,
+    #                    crc16=0, instruction=Instructions[packet_obj['instruction']], target=packet_obj['pin'],
+    #                    data=bytes(packet_obj['data']), padding=None)
+    data = packet_obj['data'] + [0]*(8-len(packet_obj['data']))
+    cp = [1, CommandPacketSize, 0, Instructions[packet_obj['instruction']],
+          packet_obj['pin'], *data]
+    logging.debug(cp)
+
+    cmd_p = struct.pack(CommandPacketStruct, *cp)
+    return cobs.encode(cmd_p) + b'\0'
 
 
 class PacketReceiver(Packetizer):
@@ -139,7 +149,8 @@ class PacketReceiver(Packetizer):
 
         # stupid manual struct unpacking is stupid
         s = struct.unpack(CommandPacketStruct, arr)
-        dp = CommandPacket(type=s[0], size=s[1], crc16=s[2], instruction=s[3], target=s[4], message=s[5:18], padding=None)
+        dp = CommandPacket(type=s[0], size=s[1], crc16=s[2], instruction=s[3], target=s[4], message=s[5:18],
+                           padding=None)
 
         # hand over packets to interested parties...
         for fn_packet_callback in self.packet_callbacks:
@@ -153,4 +164,3 @@ class PacketReceiver(Packetizer):
             print('Serial connection loss: ', exc)
             logging.debug(f'Serial connection loss: {exc}')
             traceback.print_exc()
-

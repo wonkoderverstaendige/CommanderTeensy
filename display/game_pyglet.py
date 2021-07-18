@@ -14,11 +14,10 @@ from commander_teensy.TeensyCommander import ZMQ_SERVER_SUB_PORT as ZMQ_CLIENT_P
 TEENSY_STATE_VARIABLE_IDX = 7
 
 
-def play_sinewave(frequency, duration):
+def play_sinewave(frequency, duration, volume=0.1):
     """Sounddevice requires headphone jack detection."""
-    volume = 0.5
     fs = 44100
-    samples = (np.sin(2 * np.pi * np.arange(fs * duration) * frequency / fs)).astype(np.float32)
+    samples = (np.sin(2 * np.pi * np.arange(fs * duration) * frequency / fs)).astype(np.float32) * volume
     try:
         sd.play(samples, fs)
     except sd.PortAudioError as e:
@@ -66,7 +65,11 @@ class PygletGame(pyglet.window.Window):
         self.zmq_pub = self.zmq_ctx.socket(zmq.PUB)
         self.zmq_pub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_PUB_PORT}")
 
-        play_sinewave(1000, 0.1)
+        # TRIAL STUFF
+        self.x_zero = 0
+        self.trial_active = True
+
+        play_sinewave(200, 0.5)
         pyglet.app.run()
 
     def update(self, dt):
@@ -80,30 +83,33 @@ class PygletGame(pyglet.window.Window):
                 break
         if messages:
             # Using last state variable to update the square position
-            self.x = (messages[-1].states[7]/2**16+0.5)*self.sw
+            self.x = self.x_zero - (messages[-1].states[7]/2**16+0.5)*self.sw
 
     def on_key_press(self, symbol, modifiers):
         if symbol in [key.RETURN, key.ESCAPE, key.Q]:
             self.close()
             pyglet.app.exit()
+        elif symbol in [key.S]:
+            self.end_trial()
+        elif symbol in [key.A]:
+            self.trial_active = True
 
     def on_text_motion(self, motion):
         if motion == key.MOTION_LEFT:
-            self.x -= self.velocity
+            self.x_zero -= self.velocity
         elif motion == key.MOTION_RIGHT:
-            self.x += self.velocity
+            self.x_zero += self.velocity
         elif motion == key.MOTION_BACKSPACE:
-            self.x = (self.sw - self.block_size) // 2
+            self.x_zero = (self.sw - self.block_size) // 2
         elif motion == key.MOTION_BEGINNING_OF_LINE:
-            self.x = 0
+            self.x_zero = 0
         elif motion == key.MOTION_END_OF_LINE:
-            self.x = self.sw - self.block_size
+            self.x_zero = self.sw - self.block_size
 
     def on_draw(self):
         self.clear()
         self.rectangle.x = self.x
-        if (self.rectangle.x > self.sw/10*9 or self.rectangle.x < self.sw/10*1):
-            self.end_trial(1000, 0.5)
+
         if self.changeColor:
             self.controlrect.color = (255, 255, 255)
             self.changeColor = False
@@ -113,40 +119,21 @@ class PygletGame(pyglet.window.Window):
         self.batch.draw()
         self.fps_display.draw()
 
+        # if (self.rectangle.x > self.sw*0.9 or self.rectangle.x < self.sw*0.1):
+        #     if self.trial_active:
+        #         self.end_trial(1000, 500)
 
-    # def send_solenoid_cmd(pin, duration):
-    #     packet_type = 1
-    #     packet_size = struct.calcsize(DataPacketStruct)
-    #     packet_crc = 777
-    #     packet_instruction = 0
-    #     packet_target = pin
-    #     packet_message =  str(duration).encode()
-    #
-    #     packet = []
-    #     packet.extend([packet_type, packet_size, packet_crc, packet_instruction,
-    #     packet_target, packet_message])
-    #
-    #     try:
-    #         ps = struct.pack(CommandPacketStruct, *packet)
-    #     except struct.error as e:
-    #         logging.error(e)
-    #         print(packet)
-    #         return
-    #
-    #     enc = cobs.encode(ps)
-    #     print (enc + b'\0')
-    #     self.zmq_pub.send_string(enc + b'\0')
+    def end_trial(self, tone_frequency=1000, tone_duration=300):
+        self.trial_active = False
+        self.rectangle.x = int(self.sw / 2 - self.block_size / 2)
+        self.x_zero = self.rectangle.x
+        self.trigger_solenoid(solenoid=0, pulse_duration=25)
+        play_sinewave(tone_frequency, tone_duration / 1000)
+        # sd.wait()
+        self.trial_active = False
 
-    def end_trial(self, frequency, duration):
-        # TODO
-        play_sinewave(frequency, duration)
-        # self.send_solenoid_cmd(10, 5)
-        #global trialcount
-        self.rectangle.x = int(self.sw/2 - self.block_size/2)
-        self.x = self.rectangle.x
-        #trialcount = trialcount +1
-        #print("Trial " + str(trialcount) + " finished")
-        sd.wait()
+    def trigger_solenoid(self, solenoid, pulse_duration=25):
+        self.zmq_pub.send_pyobj({'instruction': 'pulse', 'pin': solenoid, 'data': [pulse_duration]})
 
 
 if __name__ == "__main__":

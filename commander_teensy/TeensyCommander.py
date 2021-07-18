@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 import zmq
 import threading
+from cobs import cobs
 
 import serial
 import serial.threaded
@@ -49,18 +50,18 @@ class TeensyCommander:
         self.web_server = WebInterface(http_port, ws_port, self)
 
         try:
-            self.ser = serial.Serial(self.serial_port)
-            self.ser.flushInput()
+            self.serial = serial.Serial(self.serial_port)
+            self.serial.flushInput()
         except serial.SerialException as e:
             logging.error("Can't find serial device: {}".format(e))
             if USE_DUMMY:
                 logging.warning('Using serial dummy')
                 self.dummy = SerialDummy()
-                self.ser = self.dummy.ser
+                self.serial = self.dummy.ser
                 self.serial_port = 'DUMMY'
             else:
                 exit()
-        self.serial_reader = serial.threaded.ReaderThread(self.ser, PacketReceiver).__enter__()
+        self.serial_reader = serial.threaded.ReaderThread(self.serial, PacketReceiver).__enter__()
 
         # Data receive callbacks
         self.serial_reader.raw_callbacks.append(self.log_writer.handle_array)
@@ -99,27 +100,26 @@ class TeensyCommander:
                 else:
                     raise
             if msg:
-                self.send_packet(msg)
+                self.send(msg)
 
     def send(self, msg):
         logging.debug('Send message: ' + str(msg))
         self.pack_packet(msg)
 
-    def pack_packet(self, message):
-        logging.debug(f'Packing message: {message}')
-        if message.startswith('digital'):
-            pin = int(message.split('put_')[1])
-            packed = pack_command_packet({'pin': pin, 'data': 25})
+    def pack_packet(self, instruction):
+        logging.debug(f'Packing instruction: {instruction}')
+        try:
+            packed = pack_command_packet(instruction)
             self.send_packet(packed)
-        else:
+        except ValueError:
             logging.debug('Unknown type!')
 
     def send_packet(self, packet):
-        logging.debug('Send packet ' + str(packet))
-
-        # COBS ENCODE
-        # cobs.encode....
-        # self.serial.send(encoded)
+        logging.debug('Serial write: ' + str(packet))
+        try:
+            self.serial.write(packet)
+        except (ValueError, serial.SerialException) as e:
+            logging.error(f'Serial write failed: {e}')
 
 
 def main(screen):

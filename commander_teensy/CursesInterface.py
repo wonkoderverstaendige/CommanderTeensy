@@ -95,7 +95,7 @@ class CursesUI(threading.Thread):
                 w.addstr(0, 2, "Serial " + self.commander.serial_port)
             else:
                 w.addstr(0, 2, "Serial " + self.commander.serial_port, curses.color_pair(5))
-            status = self.commander.ser.is_open
+            status = self.commander.serial.is_open
             color = curses.color_pair(3) if status else curses.color_pair(6)
             status_txt = "OK" if status else "ERROR"
             w.addstr(0, 10+len(self.commander.serial_port), status_txt, color)
