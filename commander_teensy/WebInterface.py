@@ -77,7 +77,6 @@ class WSServer(threading.Thread):
                 self.msg_callback(message)
         except BaseException as e:
             logging.error(e)
-            raise
 
     def handle_packet(self, packet):
         if packet.type == 0:

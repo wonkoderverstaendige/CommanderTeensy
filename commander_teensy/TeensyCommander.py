@@ -105,7 +105,7 @@ class TeensyCommander:
     def pack_packet(self, message):
         logging.debug(f'Packing message: {message}')
         if message.startswith('digital'):
-            pin = int(message.split('digital_')[1]) - 16
+            pin = int(message.split('put_')[1])
             packed = pack_command_packet({'pin': pin, 'data': 25})
             self.send_packet(packed)
         else:
@@ -113,6 +113,10 @@ class TeensyCommander:
 
     def send_packet(self, packet):
         logging.debug('Send packet ' + str(packet))
+
+        # COBS ENCODE
+        # cobs.encode....
+        # self.serial.send(encoded)
 
 
 def main(screen):

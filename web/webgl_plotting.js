@@ -1,31 +1,66 @@
 // noinspection DuplicatedCode
 
-import {WebglPlot, ColorRGBA, WebglLine} from "https://cdn.skypack.dev/webgl-plot";
+import {CanvasPlot} from "./CanvasPlot.js";
 
-const canvas = document.getElementById('canvas_analog');
+let numPoints = 10000;
+const numAnalogIn = 8;
+const numStates = 8;
+const numDigitalIn = 16;
+const numDigitalOut = 8;
 
-let numLines = 8;
-let numX = 5000;
-let wglp;
-let wgLines = [];
-let wgLineColors = [];
+const plotConfig = {
+    analog: {
+        numLines: numAnalogIn + numStates,
+        partitions: {
+            analog_input: {
+                dataID: 'analog',
+                numLines: numAnalogIn,
+                hasButton: false,
+                hasIndicator: false,
+                scaleFactors: new Array(numAnalogIn).fill(2**-15*0.9),
+                units: new Array(numAnalogIn).fill('V'),
+                unitFormat: (x) => `${(x * 2 ** -12 * 3.3).toFixed(2)}`,
+                colorFormat: (i, numLines) => `hsl(${180 / numLines * i}, 80%, 60%)`
+            },
+            states: {
+                dataID: 'states',
+                numLines: numStates,
+                hasButton: false,
+                hasIndicator: false,
+                scaleFactors: new Array(numAnalogIn).fill(2**-15*0.9), //[2 ** -16.5, 2 ** -10, 2 ** -12, 2 ** -12, 1 / 25, 2 ** -22, 2 ** -22, 2 ** -22],
+                units: ['cm', 'cm/s', 'cm/s²', 'Δlux', '°C', 'mA', 'Hz', 'kW'],
+                unitFormat: (x) => `${x >= 0 ? '0' : ''}${(x / 100).toFixed(2)}`,
+                colorFormat: (i, numLines) => `hsl(${180 / numLines * i + 180}, 40%, 50%)`
+            },
+        }
+    },
+    digital: {
+        numLines: numDigitalIn + numDigitalOut,
+        partitions: {
+            digital_input: {
+                dataID: 'digitalIn',
+                numLines: numDigitalIn,
+                hasButton: false,
+                hasIndicator: '#0F0',
+                colorFormat: (i, numLines) => `hsl(${90 / numLines * i}, 80%, 60%)`,
+                scaleFactors: new Array(numDigitalIn).fill(1/(15))
+            },
+            digital_output: {
+                dataID: 'digitalOut',
+                numLines: numDigitalOut,
+                hasButton: true,
+                hasIndicator: '#F00',
+                colorFormat: (i, numLines) => `hsl(${120 / numLines * i + 120}, 80%, 60%)`,
+                scaleFactors: new Array(numDigitalIn).fill(1/(15))
+            },
+        }
+    }
+};
 
-let scale = 1;
-let offset = 0;
-let pinchZoom = false;
-let drag = false;
-let zoom = false;
-let dragInitialX = 0;
-let dragOffsetOld = 0;
-let initialX = 0;
+let wgl_plots = [];
 
 let ws;
 let message_queue = [];
-
-let indicators = [];
-let buttons = [];
-let unit_names_analog;
-let unit_names_states;
 
 createUI();
 init();
@@ -40,20 +75,15 @@ window.addEventListener("resize", () => {
 function processMessages() {
     let packets = message_queue;
     message_queue = [];
-    wgLines.forEach((line, idx) => {
-        const data = [];
-        packets.forEach((p) => {
-           data.push(p['analog'][idx]);
-        });
-        line.shiftAdd(data);
+    updateTextDisplay(packets[packets.length - 1]);
+    wgl_plots.forEach((plot) => {
+        plot.update(packets);
     });
 }
 
 // Animation/update ticks, maybe lower to 30 fps?
 function newFrame() {
-    updateTextDisplay();
     processMessages();
-    wglp.update();
     requestAnimationFrame(newFrame);
 }
 
@@ -81,129 +111,60 @@ function add_label(grid, channel_name, color, box = null, button = null) {
 }
 
 function createUI() {
-    let unit_fields_analog = [];
-    unit_names_analog = ['V', 'V', 'V', 'V', 'V', 'V', 'V', 'V'];
-    for (let i = 0; i < 8; i++) {
-        const lbl = document.createElement('div');
-        lbl.className = 'unit_field analog';
-        lbl.id = `analog_${i}`;
-        unit_fields_analog.push(lbl);
-    }
+    for (const [canvasID, cfg] of Object.entries(plotConfig)) {
+        const label_grid = document.querySelector(`#grid_${canvasID}`);
 
-    let unit_fields_states = [];
-    unit_names_states = ['cm', 'cm/s', 'cm/s²', 'Δlux', '°C', 'mA', 'Hz', 'kW'];
-    for (let i = 0; i < 8; i++) {
-        const lbl = document.createElement('div');
-        lbl.className = 'unit_field states';
-        lbl.id = `states_${i}`;
-        unit_fields_states.push(lbl);
-    }
+        for (const [partitionID, partition] of Object.entries(cfg.partitions)) {
+            for (let i = 0; i < partition.numLines; i++) {
+                let color = partition.colorFormat(i, partition.numLines);
+                let box;
 
-    for (let i = 0; i < 24; i++) {
-        const ind = document.createElement('div');
-        ind.className = "indicator";
-        ind.id = `digital_${i}`;
-        indicators.push(ind);
-    }
+                // unit labels for analog channels and states
+                if (partition.units) {
+                    box = document.createElement('div');
+                    box.id = `${partitionID}_${i}`
+                    box.className = `unit_field ${partitionID}`
+                }
 
-    for (let i = 0; i < 8; i++) {
-        const btn = document.createElement('button');
-        const text = document.createTextNode('toggle');
-        btn.appendChild(text)
-        btn.className = "toggle_button";
-        btn.id = `digital_${16 + i}`;
-        btn.onclick = btn_clicked;
-        buttons.push(btn);
-    }
+                // digital indicator box
+                if (partition.hasIndicator) {
+                    box = document.createElement('div');
+                    box.className = "indicator";
+                    box.id = `${partitionID}_${i}`;
+                }
 
-    // analog graph
-    let label_grid = document.querySelector('#grid_analog');
-    let num_lines = 8;
-    for (let i = 0; i < num_lines; i++) {
-        // const line = graph_analog.add_line();
-        // line.scaleFactor = 1/2**16;
-        // line.offset = 0;
-        // line.color = 'hsl(' + (180/num_lines*i).toString() + ', 80%, 60%)';
-        let color = 'hsl(' + (180 / num_lines * i).toString() + ', 80%, 60%)';
-        add_label(label_grid, `analog_input_${i}`, color, unit_fields_analog[i]);
-        wgLineColors.push([(1/num_lines*i), 0.8, 0.6]);
-    }
+                // toggle button for digital output channels
+                let button;
+                if (partition.hasButton) {
+                    button = document.createElement('button');
+                    let text = document.createTextNode('toggle');
+                    button.appendChild(text)
+                    button.className = "toggle_button";
+                    button.id = `${partitionID}_${i}`;
+                    button.onclick = btn_clicked;
+                }
 
-    // states graph
-    label_grid = document.querySelector('#grid_states');
-    num_lines = 8;
-    const scale_factors = [1 / 2 ** 16.5, 1 / 2 ** 10, 1 / 2 ** 12, 1 / 2 ** 12,
-        1 / 25, 1 / 2 ** 22, 1 / 2 ** 22, 1 / 2 ** 22];
-    for (let i = 0; i < num_lines; i++) {
-        // const line = graph_states.add_line();
-        // line.scaleFactor = scale_factors[i]/4;  // should be 32 for full range, just for ease of visualisation
-        // line.offset = 1 - 1/num_lines*i - line.scaleFactor; //0.5;
-        // line.color = 'hsl(' + (180/num_lines*i+180).toString() + ', 40%, 50%)';
-        let color = 'hsl(' + (180 / num_lines * i + 180).toString() + ', 40%, 50%)';
-        add_label(label_grid, `states_input_${i}`, color, unit_fields_states[i]);
-    }
+                add_label(label_grid, `${partitionID}_${i}`, color, box, button);
 
-    //digital graph
-    label_grid = document.querySelector('#grid_digital');
-    num_lines = 24;
-    for (let i = 0; i < num_lines; i++) {
-        const data_type = i < 16 ? "input" : "output";
-        // const line = graph_digital.add_line();
-        // line.scaleFactor = 0.75/num_lines;
-        // line.offset = 1 - 1/num_lines*i - line.scaleFactor;
-        // line.draw_step = true;
-        let color;
-        if (i < 16) {
-            color = 'hsl(' + (90 / num_lines * i).toString() + ', 80%, 60%)';
-        } else {
-            color = 'hsl(' + (120 / num_lines * i + 120).toString() + ', 80%, 60%)';
+            }
         }
-        const btn = (i < 16) ? null : buttons[i - 16];
-        add_label(label_grid, `digital_${data_type}_${i}`, color, indicators[i], btn);
     }
-
-}
-
-function getColor(rgb) {
-    let sep = rgb.indexOf(",") > -1 ? "," : " ";
-    rgb = rgb.substr(4).split(")")[0].split(sep);
-    let r = parseInt(rgb[0]),
-        g = parseInt(rgb[1]),
-        b = parseInt(rgb[2]);
-    return [r/255, g/255, b/255];
 }
 
 function init() {
     ws = start_websocket(5678);
 
     const devicePixelRatio = window.devicePixelRatio || 1;
-    canvas.width = canvas.clientWidth * devicePixelRatio;
-    canvas.height = canvas.clientHeight * devicePixelRatio;
 
-    wglp = new WebglPlot(canvas);
-    wglp.removeAllLines();
-
-    for (let i = 0; i < numLines; i++) {
-        // const color = new ColorRGBA(1, 1, 1/i, 1);
-        const lbl = document.getElementById('analog_input_'+i);
-        const rgb = getColor(lbl.style.backgroundColor);
-        const color = new ColorRGBA(rgb[0], rgb[1], rgb[2], 1);
-
-        const line = new WebglLine(color, numX);
-        line.lineSpaceX(-1, 2 / numX); // fill x with numX -1...1 array
-        line.offsetY = 2*(numLines-i-1)/(numLines)-1;
-        line.scaleY = 1/320000;
-        wglp.addLine(line);
-        wgLines.push(line);
+    // One Plot per Canvas
+    for (const [canvasID, cfg] of Object.entries(plotConfig)) {
+        const canvas = document.getElementById(`canvas_${canvasID}`);
+        canvas.width = canvas.clientWidth * devicePixelRatio;
+        canvas.height = canvas.clientHeight * devicePixelRatio;
+        console.log(`Canvas ${canvasID}: ${canvas.width} x ${canvas.height}`);
+        const webgl_plot = new CanvasPlot(canvas, numPoints, cfg);
+        wgl_plots.push(webgl_plot);
     }
-
-    // let data = new Array(numX).fill(0);
-    // wgLines.forEach((line) => {
-    //     line.shiftAdd(data);
-    // });
-
-    wglp.gScaleX = 1;
-
     // start accepting messages
     ws.onmessage = ws_message_receive;
 }
@@ -233,39 +194,43 @@ function ws_message_receive(event) {
         console.log(event.data);
         return;
     }
-    // graph_analog.appendPacket(packet.us_start, packet.analog);
-    // graph_states.appendPacket(packet.us_start, packet.states);
-    // graph_digital.appendPacket(packet.us_start, packet.digitalIn.concat(packet.digitalOut));
-
     message_queue.push(packet);
 }
 
 
-function updateTextDisplay() {
-    const packet = message_queue[message_queue.length - 1];
+function updateTextDisplay(packet) {
     if (!packet) return;
-    let lbl;
-    // analog charts values
-    for (let i = 0; i < 8; i++) {
-        lbl = document.querySelector(`.unit_field#analog_${i}`);
-        lbl.textContent = (packet['analog'][i] / 2 ** 16 * 3.3).toFixed(2) + ' ' + unit_names_analog[i];
-    }
 
-    // state charts values
-    for (let i = 0; i < 8; i++) {
-        lbl = document.querySelector(`.unit_field#states_${i}`);
-        lbl.textContent = (packet['states'][i] >= 0 ? '0' : '') + (packet['states'][i] / 100).toFixed(2) + ' ' + unit_names_states[i];
-    }
+    for (const [canvasID, cfg] of Object.entries(plotConfig)) {
+        for (const [partitionID, partition] of Object.entries(cfg.partitions)) {
+            for (let i = 0; i < partition.numLines; i++) {
+                let x;
+                try {
+                    x = packet[partition.dataID][i];
+                } catch (e) {
+                    console.error(e)
+                    console.debug(partition.dataID)
+                    console.debug(partition)
+                }
 
-    // digital charts indicators
-    for (let i = 0; i < 24; i += 1) {
-        let bg_color;
-        if (i < 16) {
-            bg_color = packet['digitalIn'][i] ? '#0F0' : '#000';
-        } else {
-            bg_color = packet['digitalOut'][i - 16] ? '#F00' : '#000';
+                if (partition.units) {
+                    const lbl = document.querySelector(`.unit_field#${partitionID}_${i}`);
+
+                    let lblText = partition.unitFormat ? partition.unitFormat(x) : x.toFixed(2);
+                    if (partition.units) {
+                        lblText = lblText + ' ' + partition.units[i];
+                    }
+                    lbl.textContent = lblText;
+                }
+
+                if (partition.hasIndicator) {
+                    let bg_color = x ? partition.hasIndicator : '#000'; // hasIndicator is flag and ON color
+                    const indicator = document.querySelector(`.indicator#${partitionID}_${i}`);
+                    indicator.style.backgroundColor = bg_color;
+                }
+
+            }
         }
-        indicators[i].style.backgroundColor = bg_color;
     }
 }
 
@@ -274,4 +239,39 @@ function btn_clicked(event) {
     if (ws) {
         ws.send(event.target.id);
     }
+}
+
+/**
+ * Assumes h, s, and l are contained in the set [0, 1] and
+ * returns r, g, and b in the set [0, 1].
+ * FROM: https://stackoverflow.com/a/9493060
+ *
+ * @param   {number}  h       The hue
+ * @param   {number}  s       The saturation
+ * @param   {number}  l       The lightness
+ * @return  {Array}           The RGB representation
+ */
+function hslToRgb(h, s, l) {
+    let r, g, b;
+
+    if (s === 0) {
+        r = g = b = l; // achromatic
+    } else {
+        let hue2rgb = function hue2rgb(p, q, t) {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        }
+
+        let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        let p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1 / 3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1 / 3);
+    }
+
+    return [r, g, b];
 }

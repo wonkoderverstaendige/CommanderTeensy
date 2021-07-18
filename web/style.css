@@ -1,7 +1,7 @@
 .container-grid {
     display: grid;
     grid-template-columns: auto 200px;
-    grid-template-rows: 250px 250px 420px;
+    grid-template-rows: 500px 420px;
     grid-gap: 2px 2px;
     width: auto;
 }
@@ -53,7 +53,7 @@ canvas {
     padding: 2px 4px;
  }
 
-.unit_field.analog {
+.unit_field.analog_input {
     left: 55%;
     font-size: 16px
 }
