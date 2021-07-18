@@ -17,7 +17,7 @@ const plotConfig = {
                 numLines: numAnalogIn,
                 hasButton: false,
                 hasIndicator: false,
-                scaleFactors: new Array(numAnalogIn).fill(2**-15*0.9),
+                scaleFactors: new Array(numAnalogIn).fill(2 ** -15 * 0.9),
                 units: new Array(numAnalogIn).fill('V'),
                 unitFormat: (x) => `${(x * 2 ** -12 * 3.3).toFixed(2)}`,
                 colorFormat: (i, numLines) => `hsl(${180 / numLines * i}, 80%, 60%)`
@@ -27,7 +27,7 @@ const plotConfig = {
                 numLines: numStates,
                 hasButton: false,
                 hasIndicator: false,
-                scaleFactors: new Array(numAnalogIn).fill(2**-15*0.9), //[2 ** -16.5, 2 ** -10, 2 ** -12, 2 ** -12, 1 / 25, 2 ** -22, 2 ** -22, 2 ** -22],
+                scaleFactors: new Array(numAnalogIn).fill(2 ** -15 * 0.9), //[2 ** -16.5, 2 ** -10, 2 ** -12, 2 ** -12, 1 / 25, 2 ** -22, 2 ** -22, 2 ** -22],
                 units: ['cm', 'cm/s', 'cm/s²', 'Δlux', '°C', 'mA', 'Hz', 'kW'],
                 unitFormat: (x) => `${x >= 0 ? '0' : ''}${(x / 100).toFixed(2)}`,
                 colorFormat: (i, numLines) => `hsl(${180 / numLines * i + 180}, 40%, 50%)`
@@ -43,7 +43,7 @@ const plotConfig = {
                 hasButton: false,
                 hasIndicator: '#0F0',
                 colorFormat: (i, numLines) => `hsl(${90 / numLines * i}, 80%, 60%)`,
-                scaleFactors: new Array(numDigitalIn).fill(1/(15))
+                scaleFactors: new Array(numDigitalIn).fill(1 / (15))
             },
             digital_output: {
                 dataID: 'digitalOut',
@@ -51,7 +51,7 @@ const plotConfig = {
                 hasButton: true,
                 hasIndicator: '#F00',
                 colorFormat: (i, numLines) => `hsl(${120 / numLines * i + 120}, 80%, 60%)`,
-                scaleFactors: new Array(numDigitalIn).fill(1/(15))
+                scaleFactors: new Array(numDigitalIn).fill(1 / (15))
             },
         }
     }
@@ -152,20 +152,14 @@ function createUI() {
 }
 
 function init() {
-    ws = start_websocket(5678);
-
-    const devicePixelRatio = window.devicePixelRatio || 1;
-
     // One Plot per Canvas
-    for (const [canvasID, cfg] of Object.entries(plotConfig)) {
-        const canvas = document.getElementById(`canvas_${canvasID}`);
-        canvas.width = canvas.clientWidth * devicePixelRatio;
-        canvas.height = canvas.clientHeight * devicePixelRatio;
-        console.log(`Canvas ${canvasID}: ${canvas.width} x ${canvas.height}`);
-        const webgl_plot = new CanvasPlot(canvas, numPoints, cfg);
+    for (const canvasID of Object.keys(plotConfig)) {
+        const webgl_plot = new CanvasPlot(canvasID, numPoints, plotConfig);
         wgl_plots.push(webgl_plot);
     }
+
     // start accepting messages
+    ws = start_websocket(5678);
     ws.onmessage = ws_message_receive;
 }
 
@@ -215,7 +209,6 @@ function updateTextDisplay(packet) {
 
                 if (partition.units) {
                     const lbl = document.querySelector(`.unit_field#${partitionID}_${i}`);
-
                     let lblText = partition.unitFormat ? partition.unitFormat(x) : x.toFixed(2);
                     if (partition.units) {
                         lblText = lblText + ' ' + partition.units[i];
@@ -228,7 +221,6 @@ function updateTextDisplay(packet) {
                     const indicator = document.querySelector(`.indicator#${partitionID}_${i}`);
                     indicator.style.backgroundColor = bg_color;
                 }
-
             }
         }
     }

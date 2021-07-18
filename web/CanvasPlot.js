@@ -1,13 +1,21 @@
 import {WebglPlot, ColorRGBA, WebglLine} from "https://cdn.skypack.dev/webgl-plot";
 
+// TODO: Input buffer + downsampling for extended periods
+// TODO: Interactivity (pause, zoom, select, time on axis)
+
 export class CanvasPlot {
-    constructor(canvas, numX, cfg) {
-        this.canvas = canvas;
+    constructor(canvasID, numX, cfg) {
+        this.canvasID = canvasID;
+        this.canvas = document.getElementById(`canvas_${canvasID}`);
+        const devicePixelRatio = window.devicePixelRatio || 1;
+        this.canvas.width = this.canvas.clientWidth * devicePixelRatio;
+        this.canvas.height = this.canvas.clientHeight * devicePixelRatio;
+        console.log(`Plot on canvas ${canvasID}: ${this.canvas.width} x ${this.canvas.height}`);
+
         this.numX = numX;
-        this.cfg = cfg;
+        this.cfg = cfg[this.canvasID];
 
         this.numLines = this.cfg.numLines;
-        this.colors = [];
 
         this.plot = new WebglPlot(this.canvas);
         this.plot.removeAllLines();
