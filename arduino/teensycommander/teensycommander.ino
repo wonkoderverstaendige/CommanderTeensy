@@ -115,6 +115,7 @@ dataPacket State;
 
 void setup() {
   setUpTooglePins();
+  pulsePins[1]->setTimer(5000);
   //pulsePins[1] = new Pinpulse('pin1',10,HIGH,current_micros);
   //pulsePins[2] = new Pinpulse('pin2',11,HIGH,current_micros);
   //pulsePins[3] = new Pinpulse('pin3',12,HIGH,current_micros);

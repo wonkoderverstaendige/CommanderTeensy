@@ -5,10 +5,9 @@ Pinpulse::Pinpulse(byte pinID, unsigned int pinNr, boolean polarity, elapsedMicr
   // set default value for polarity
   this->polarity = polarity;
   pinMode(pinID, OUTPUT);
-  this->nextChangeTime = 0;
+  this->nextChangeTime = 99999999999999;
   this->run = true;
   this->current_micros = current_micros;
-
 }
 
 void Pinpulse::update() {
@@ -16,6 +15,7 @@ void Pinpulse::update() {
     if(current_micros >= this->nextChangeTime) {
       // Change pinState accordingly
       digitalWriteFast(this->pinNr,this->polarity);
+      this->nextChangeTime = 99999999999999;
     }
     else{
       digitalWriteFast(this->pinNr,!(this->polarity));
@@ -29,7 +29,7 @@ void Pinpulse::setTimer(unsigned long duration){
 
 void Pinpulse::restart(){
   this->run = true;
-  this->nextChangeTime = 0;
+  this->nextChangeTime = 99999999999999;
   digitalWriteFast(this->pinNr,this->polarity);
 }
 
