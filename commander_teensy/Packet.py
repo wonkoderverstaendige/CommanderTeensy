@@ -39,10 +39,17 @@ DataPacketStruct = '<' + ''.join(DataPacketDesc.values())
 DataPacketSize = struct.calcsize(DataPacketStruct)
 logging.info(f"Packet size: {DataPacketSize} Bytes in {DataPacketStruct}")
 
-CommandPacket = {'type': 'B',
-                 'command': 'B',
-                 'data': 'B'}
-CommandPacketStruct = '<BBBx'
+CommandPacketDesc = {'type': 'B',
+                 'size': 'B',
+                 'crc16': 'H',
+                 'instruction': 'B',
+                 'target': 'B',
+                 'message': '18s',
+                 'padding': 'x'}
+CommandPacket = namedtuple('CommandPacket', CommandPacketDesc.keys())
+CommandPacketStruct = '<' + ''.join(CommandPacketDesc.values())
+CommandPacketSize = struct.calcsize(CommandPacketStruct)
+logging.info(f"CommandPacket size: {CommandPacketSize} Bytes in {CommandPacketStruct}")
 
 PinPulsePacket = {'pin': 'B',
                         'duration': 'H'}
@@ -124,9 +131,26 @@ class PacketReceiver(Packetizer):
                 raise
 
     def unpack_command_packet(self, arr):
-        logging.debug(f"Unpacking CommandPacket: {arr}")
+        """Handle a command packet by extracting its fields.
+        """
+        if len(arr) != CommandPacketSize:
+            logging.warning(f"Incorrect data size. Is: {len(arr)}, expected: {CommandPacketSize}. Packet: {arr}")
+            return
+
+        # stupid manual struct unpacking is stupid
+        s = struct.unpack(CommandPacketStruct, arr)
+        dp = CommandPacket(type=s[0], size=s[1], crc16=s[2], instruction=s[3], target=s[4], message=s[5:18], padding=None)
+
+        # hand over packets to interested parties...
+        for fn_packet_callback in self.packet_callbacks:
+            try:
+                fn_packet_callback(dp)
+            except BaseException as e:
+                logging.critical(e)
 
     def connection_lost(self, exc):
         if exc:
+            print('Serial connection loss: ', exc)
             logging.debug(f'Serial connection loss: {exc}')
             traceback.print_exc()
+

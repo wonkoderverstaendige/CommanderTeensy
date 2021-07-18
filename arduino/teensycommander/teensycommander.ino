@@ -1,6 +1,9 @@
 #include <Encoder.h>
 #include <FastCRC.h>
 #include <PacketSerial.h>
+#include <math.h>
+#include "Pinpulse.h"
+//#include <Pinpulse.h>
 
 #define WHEEL_ENC_PINA 5
 #define WHEEL_ENC_PINB 6
@@ -18,6 +21,9 @@ PacketSerial packetSerialExt;
 // interval Timer creation
 IntervalTimer gatherTimer;
 elapsedMicros current_micros;
+
+int nrPulsePins = 10;
+Pinpulse** pulsePins = new Pinpulse*[nrPulsePins];
 
 // Encoders and Sensors
 Encoder wheelEncoder(WHEEL_ENC_PINA, WHEEL_ENC_PINB);
@@ -37,13 +43,14 @@ enum packetType: uint8_t {
   ptACK
 };
 
-enum Instructions: uint8_t {
+enum Intructions: uint8_t {
   instPIN_TOGGLE,
   instPIN_HIGH,
   instPIN_LOW,
   instSET_STATE,
-  instPULSE
+  instPIN_PULSE
 };
+
 
 volatile unsigned long packetCount = 0;
 struct dataPacket {
@@ -69,6 +76,23 @@ struct dataPacket {
                    digitalOut(0) {}
 };
 
+struct inPacket {
+    uint8_t type;          // 1 B, packet type
+    uint8_t length;        // 1 B, packet size
+    uint16_t crc16;        // 2 B, CRC16
+    //unsigned long packetID;// 4 B, running packet count
+    
+    Intructions instruction; // 1 B
+    uint8_t target; // 1 B
+    char message[18];
+    uint8_t padding[1];
+
+    inPacket() : type(ptCOMMAND),
+                 length(sizeof(inPacket)),
+                 crc16(0){}  
+                 //packetID(packetCount++)  
+};
+
 struct errorPacket {
     uint8_t type;          // 1 B, packet type
     uint8_t length;        // 1 B, packet size
@@ -90,6 +114,18 @@ unsigned char counter = 0;
 dataPacket State;
 
 void setup() {
+  setUpTooglePins();
+  pulsePins[1]->setTimer(5000);
+  //pulsePins[1] = new Pinpulse('pin1',10,HIGH,current_micros);
+  //pulsePins[2] = new Pinpulse('pin2',11,HIGH,current_micros);
+  //pulsePins[3] = new Pinpulse('pin3',12,HIGH,current_micros);
+  
+  // analog input channels
+  analogReadResolution(16);
+  for (int i=0; i<8; i++) {
+    pinMode(14+i, INPUT_PULLDOWN);
+  }
+  
   // digital input channels
   for (int i=0; i<5; i++) {
     pinMode(0+i, INPUT_PULLUP);
@@ -100,12 +136,6 @@ void setup() {
   // digital output channels
   for (int i=0; i<4; i++) {
     pinMode(9+i, OUTPUT);
-  }
-
-  // analog input channels
-  analogReadResolution(16);
-  for (int i=0; i<8; i++) {
-    pinMode(14+i, INPUT_PULLDOWN);
   }
 
   pinMode(ledPin, OUTPUT);
@@ -121,10 +151,11 @@ void setup() {
   // and seems to massively reduce/prevent missed counts
   gatherTimer.priority(200);
   gatherTimer.begin(gather, 1000);
+  
+  digitalWriteFast(5, LOW);
 }
 
 void loop() {
-  digitalWriteFast(LOOP_INDICATOR, HIGH);
   // check current serial status
   packetSerialA.update();
   packetSerialB.update();
@@ -155,8 +186,14 @@ void loop() {
   if (packetSerialB.overflow()) {
     SerialUSB2.println("S_B overflow!");
   }
+
   digitalWriteFast(LOOP_INDICATOR, LOW);
+
+  for (size_t i = 0; i < nrPulsePins; ++i) {
+    pulsePins[i]->update();
+  }
 }
+
 
 void gather() {
   digitalWriteFast(GATHER_INDICATOR, LOW); // toggle pin to indicate gather start
@@ -213,6 +250,50 @@ void processState(dataPacket* packet) {
   counter++;
 }
 
-void processCommand(const uint8_t* buffer, size_t size) {
-  digitalWrite(6+buffer[2], !digitalRead(6+buffer[2]));
+void setUpTooglePins(){
+  for (size_t i = 0; i < nrPulsePins; ++i) {
+      pulsePins[i] = new Pinpulse('pin' +i,i,LOW,current_micros);
+  }
+}
+
+Pinpulse* getTooglePinById(byte id){
+  for (size_t i = 0; i < nrPulsePins; ++i) {
+      if (pulsePins[i]->getId() == id){
+        return pulsePins[i];
+      }
+  }
+  return 0;
+}
+
+int programCount = 0;
+void processCommand (const uint8_t* buf, size_t buf_sz) {
+  digitalWrite(6+buf[2], !digitalRead(6+buf[2]));
+  struct inPacket* ip = (struct inPacket*)buf;
+  char* message = (char*)ip->message;
+  int target = (int*)ip->target;
+  switch(ip->instruction){
+      case instPIN_TOGGLE: 
+        pulsePins[target]->setTimer(atoi(message));
+        break;
+      case instPIN_HIGH: 
+        digitalWriteFast(ip->target, HIGH);
+        break;
+      case instPIN_LOW:   
+        digitalWriteFast(ip->target, LOW);
+        break;
+      case instSET_STATE: 
+        Serial.println("instSet_State"); 
+        break;
+      case instPIN_PULSE:
+        // toggle pin for some seconds
+        //toggle_pin = target;
+        //toggle_duration = atoi(message);
+        //toggle_timer = 0;
+        //digitalWriteFast(target, LOW);
+        //digitalWriteFast(target, HIGH);
+        break;
+      default: 
+        Serial.println("Unknown command"); 
+        break;
+  }
 }

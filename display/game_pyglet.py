@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 import pyglet
 import sounddevice as sd
+import logging
 from pyglet import shapes
 from pyglet.window import key
 import zmq
@@ -14,10 +15,14 @@ TEENSY_STATE_VARIABLE_IDX = 7
 
 
 def play_sinewave(frequency, duration):
+    """Sounddevice requires headphone jack detection."""
     volume = 0.5
     fs = 44100
     samples = (np.sin(2 * np.pi * np.arange(fs * duration) * frequency / fs)).astype(np.float32)
-    sd.play(samples, fs)
+    try:
+        sd.play(samples, fs)
+    except sd.PortAudioError as e:
+        logging.error(f'Failed to play audio: {e}')
 
 
 class PygletGame(pyglet.window.Window):
@@ -26,8 +31,7 @@ class PygletGame(pyglet.window.Window):
         self._screen = self.display.get_screens()[screen_id]
         self.sw = self.screen.width
         self.sh = self.screen.height
-        # self.sw = 600
-        # self.sh = 480
+
         config = pyglet.gl.Config(double_buffer=buffered)
         pyglet.options['vsync'] = vsync
 
@@ -98,7 +102,8 @@ class PygletGame(pyglet.window.Window):
     def on_draw(self):
         self.clear()
         self.rectangle.x = self.x
-
+        if (self.rectangle.x > self.sw/10*9 or self.rectangle.x < self.sw/10*1):
+            self.end_trial(1000, 0.5)
         if self.changeColor:
             self.controlrect.color = (255, 255, 255)
             self.changeColor = False
@@ -107,6 +112,41 @@ class PygletGame(pyglet.window.Window):
             self.changeColor = True
         self.batch.draw()
         self.fps_display.draw()
+
+
+    # def send_solenoid_cmd(pin, duration):
+    #     packet_type = 1
+    #     packet_size = struct.calcsize(DataPacketStruct)
+    #     packet_crc = 777
+    #     packet_instruction = 0
+    #     packet_target = pin
+    #     packet_message =  str(duration).encode()
+    #
+    #     packet = []
+    #     packet.extend([packet_type, packet_size, packet_crc, packet_instruction,
+    #     packet_target, packet_message])
+    #
+    #     try:
+    #         ps = struct.pack(CommandPacketStruct, *packet)
+    #     except struct.error as e:
+    #         logging.error(e)
+    #         print(packet)
+    #         return
+    #
+    #     enc = cobs.encode(ps)
+    #     print (enc + b'\0')
+    #     self.zmq_pub.send_string(enc + b'\0')
+
+    def end_trial(self, frequency, duration):
+        # TODO
+        play_sinewave(frequency, duration)
+        # self.send_solenoid_cmd(10, 5)
+        #global trialcount
+        self.rectangle.x = int(self.sw/2 - self.block_size/2)
+        self.x = self.rectangle.x
+        #trialcount = trialcount +1
+        #print("Trial " + str(trialcount) + " finished")
+        sd.wait()
 
 
 if __name__ == "__main__":
