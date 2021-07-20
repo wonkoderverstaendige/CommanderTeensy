@@ -7,7 +7,6 @@ import logging
 from pyglet import shapes
 from pyglet.window import key
 import zmq
-from pathlib import Path
 import importlib
 
 from commander_teensy.TeensyCommander import ZMQ_SERVER_PUB_PORT as ZMQ_CLIENT_SUB_PORT
@@ -18,7 +17,7 @@ TEENSY_STATE_VARIABLE_IDX = 7
 
 class PygletGame(pyglet.window.Window):
     def __init__(self, fullscreen=False, resizable=True, vsync=True, buffered=True, screen_id=0, frame_indicator=False,
-                 experiment_path=None):
+                 experiment_module=None, sound_volume=0.5):
         self._display = pyglet.canvas.Display()
         self._screen = self.display.get_screens()[screen_id]
         self.sw = self.screen.width
@@ -37,12 +36,14 @@ class PygletGame(pyglet.window.Window):
         self.keyboard = key.KeyStateHandler()
 
         self.block_size = self.sw // 15
-        self.x = (self.sw - self.block_size) // 2
-        self.y = (self.sh - self.block_size) // 2
-        self.velocity = 5
+        self.screen_x_zero = (self.sw - self.block_size) // 2
+        self.screen_y_zero = (self.sh - self.block_size) // 2
 
-        self.rectangle = shapes.Rectangle(self.x, self.y, self.block_size, self.block_size,
-                                          color=(255, 255, 255), batch=self.batch)
+        self.cursor = shapes.Rectangle(self.screen_x_zero, self.screen_y_zero, self.block_size, self.block_size,
+                                       color=(255, 255, 255), batch=self.batch)
+
+        self.target = shapes.Rectangle(self.screen_x_zero, self.screen_y_zero, self.block_size/4, self.block_size/4,
+                                       color=(255, 255, 255), batch=self.batch)
 
         self.frame_indicator_state = True
         self.frame_indicator_colors = {True: (0, 0, 0), False: (255, 255, 255)}
@@ -64,14 +65,16 @@ class PygletGame(pyglet.window.Window):
         self.zmq_pub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_PUB_PORT}")
 
         self.audio_fs = 44100
-        self.audio_volume = 0.5
+        # global "maximum" volume
+        self.audio_volume = sound_volume
 
         self.experiment = None
-        if experiment_path:
-            logging.info(f'Loading module {experiment_path}')
-            experiment_module = importlib.import_module(experiment_path.stem)
-            self.experiment = experiment_module.Experiment()
+        if experiment_module:
+            logging.info(f'Loading module {experiment_module}')
+            experiment_module = importlib.import_module('.' + experiment_module, 'experiments')
+            self.experiment = experiment_module.Experiment(self)
 
+        logging.debug('Starting engine...')
         pyglet.app.run()
 
     def update(self, dt):
@@ -83,33 +86,36 @@ class PygletGame(pyglet.window.Window):
                 messages.append(msg)
             except zmq.Again:
                 break
-        if messages:
-            # Using last state variable to update the square position
-            self.x = (messages[-1].states[7] / 2 ** 16 + 0.5) * self.sw
+        self.experiment.update(messages)
+
+    def send(self, instruction):
+        self.zmq_pub.send_pyobj(instruction)
 
     def on_key_press(self, symbol, modifiers):
         if symbol in [key.RETURN, key.ESCAPE, key.Q]:
+            if self.experiment:
+                self.experiment.end()
             self.exit()
-        elif symbol in [key.S] and self.experiment:
-            self.experiment.end_trial()
-        elif symbol in [key.A] and self.experiment:
-            self.experiment.trial_active = True
+        else:
+            if self.experiment:
+                self.experiment.user_input(symbol, modifiers)
 
     def on_text_motion(self, motion):
-        if motion == key.MOTION_LEFT:
-            self.x -= self.velocity
-        elif motion == key.MOTION_RIGHT:
-            self.x += self.velocity
-        elif motion == key.MOTION_BACKSPACE:
-            self.x = (self.sw - self.block_size) // 2
-        elif motion == key.MOTION_BEGINNING_OF_LINE:
-            self.x = 0
-        elif motion == key.MOTION_END_OF_LINE:
-            self.x = self.sw - self.block_size
+        if self.experiment:
+            self.experiment.user_input_motion(motion)
 
     def on_draw(self):
         self.clear()
-        self.rectangle.x = self.experiment.x if self.experiment else self.x
+        if self.experiment:
+            self.cursor.x = (self.experiment.x + 1) / 2 * self.sw - self.cursor.width / 2
+            self.cursor.y = (self.experiment.y + 1) / 2 * self.sh - self.cursor.height / 2
+
+            if self.experiment.current_goal is not None:
+                self.target.x = (self.experiment.current_goal + 1) / 2 * self.sw - self.target.width / 2
+                self.target.y = (0 + 1) / 2 * self.sh - self.target.height / 2
+
+            self.cursor.visible = self.experiment.cue_visible
+            self.target.visible = self.experiment.trial_active
 
         if self.frame_indicator:
             self.frame_indicator.color = self.frame_indicator_colors[self.frame_indicator_state]
@@ -120,7 +126,7 @@ class PygletGame(pyglet.window.Window):
 
     def play_sine(self, frequency, duration, volume=1.0):
         """SoundDevice requires available sound sink, i.e. active headphone jack detection."""
-        n_samples = self.audio_fs * duration
+        n_samples = int(self.audio_fs * duration / 1000)
         samples = np.sin(2 * np.pi * np.arange(n_samples) * frequency / self.audio_fs).astype(
             np.float32) * self.audio_volume * volume
         try:
@@ -129,6 +135,7 @@ class PygletGame(pyglet.window.Window):
             logging.error(f'Failed to play audio: {e}')
 
     def exit(self):
+        # logging.info(f'{self.n_trials} with {self.n_success}')
         self.close()
         pyglet.app.exit()
 
@@ -136,12 +143,30 @@ class PygletGame(pyglet.window.Window):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--screen', type=int, default=0)
-    parser.add_argument('-e', '--experiment', type=str)
+    parser.add_argument('-e', '--experiment', type=str, help="Name of experiments module in ../experiments/")
+    parser.add_argument('-I', '--indicator', action='store_true', help='Show frame update indicator')
+    parser.add_argument('-F', '--fullscreen', action='store_true', help='Show frame update indicator')
+    parser.add_argument('-V', '--volume', type=float, help='Global maximum audio volume', default=0.5)
+    parser.add_argument('-v', '--verbose', action='count', default=0, help="Increase logging verbosity")
     cli_args = parser.parse_args()
 
-    if cli_args.experiment:
-        cli_args.experiment = Path(cli_args.experiment)
-        if not cli_args.experiment.exists():
-            raise FileNotFoundError(f'File {cli_args.experiment} not found.')
+    try:
+        loglevel = {
+            0: logging.ERROR,
+            1: logging.WARN,
+            2: logging.INFO,
+        }[cli_args.verbose]
+    except KeyError:
+        loglevel = logging.DEBUG
 
-    game = PygletGame(screen_id=cli_args.screen, experiment_path=cli_args.experiment)
+    print(loglevel)
+    log_format = '[%(asctime)s]{%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
+    logging.basicConfig(level=loglevel,
+                        format=log_format,
+                        datefmt='%H:%M:%S',
+                        force=True)
+
+    logging.warning('test')
+
+    game = PygletGame(screen_id=cli_args.screen, fullscreen=cli_args.fullscreen, experiment_module=cli_args.experiment,
+                      frame_indicator=cli_args.indicator, sound_volume=cli_args.volume)

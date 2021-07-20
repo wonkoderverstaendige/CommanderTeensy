@@ -2,7 +2,7 @@
 #define PULSDPIN_H
 #include <Arduino.h>
 
-extern elapsedMicros current_micros;
+extern elapsedMillis current_millis;
 
 class PulsePin {
   

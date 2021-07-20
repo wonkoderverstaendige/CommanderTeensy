@@ -22,7 +22,7 @@ void PulsePin::update() {
 }
 
 void PulsePin::pulse(unsigned long duration) {
-  this->nextChangeTime = current_micros + duration;
+  this->nextChangeTime = current_millis + duration;
   Serial.println(this->nextChangeTime);
 }
 

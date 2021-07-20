@@ -32,6 +32,7 @@ PacketSerial packetSerialB;
 // interval Timer creation
 IntervalTimer gatherTimer;
 elapsedMicros current_micros;
+elapsedMillis current_millis;
 
 // intermediate values
 long encoderPosition = 0;
@@ -307,7 +308,7 @@ void processInstruction (const uint8_t* buf, size_t buf_sz) {
         for (size_t b=0; b<sizeof(bul); b++) {
           bul.bytes[b] = data[b];
         }
-        pulsePins[ip->target]->pulse(bul.ulong*1000);
+        pulsePins[ip->target]->pulse(bul.ulong);
         break;
       default: 
         EXTSERIAL.println("Unknown command"); 
