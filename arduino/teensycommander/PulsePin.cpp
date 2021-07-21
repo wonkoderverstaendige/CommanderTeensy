@@ -13,7 +13,7 @@ PulsePin::PulsePin(int pinID, int pinNr, int polarity) {
 
 void PulsePin::update() {
   if (run) {
-    if(current_micros < this->nextChangeTime) {
+    if(current_millis < this->nextChangeTime) {
       digitalWriteFast(this->pinNr, this->polarity);
     } else {
       digitalWriteFast(this->pinNr, !this->polarity);
