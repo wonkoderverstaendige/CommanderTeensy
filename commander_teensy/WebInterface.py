@@ -50,7 +50,7 @@ class WSServer(threading.Thread):
     def __init__(self, ws_port):
         super(WSServer, self).__init__(daemon=True)
         logging.info(f"Starting Websocket Server on port {ws_port}")
-        self.server = ReconnectingWebsocketServer(ws_port)
+        self.server = ReconnectingWebsocketServer(host="0.0.0.0", port=ws_port)
         self.server.set_fn_new_client(self.ws_client_connect)
         self.server.set_fn_client_left(self.ws_client_left)
         self.server.set_fn_message_received(self.ws_msg_rcv)
@@ -72,12 +72,15 @@ class WSServer(threading.Thread):
     def ws_msg_rcv(self, client, server, message):
         # TODO: Match pinout, which pins are input, which output
         logging.debug(f"WS_msg {message} from {client}")
+        if self.msg_callback is None: return
         try:
-            if self.msg_callback is not None:
-                self.msg_callback(message)
+            if message.startswith('digital'):
+                pin = int(message.split('put_')[1])
+                self.msg_callback({'instruction': 'toggle', 'pin': pin, 'data': []})
+            else:
+                logging.debug('Unknown WS Message:' + message)
         except BaseException as e:
             logging.error(e)
-            raise
 
     def handle_packet(self, packet):
         if packet.type == 0:
