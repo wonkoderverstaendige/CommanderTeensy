@@ -1,9 +1,16 @@
 import argparse
 
+import logging
+
+log_format = '[%(asctime)s]{%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
+logging.basicConfig(level=logging.DEBUG,
+                    format=log_format,
+                    datefmt='%H:%M:%S')
+
 import numpy as np
 import pyglet
 import sounddevice as sd
-import logging
+
 from pyglet import shapes
 from pyglet.window import key
 import zmq
@@ -42,7 +49,7 @@ class PygletGame(pyglet.window.Window):
         self.cursor = shapes.Rectangle(self.screen_x_zero, self.screen_y_zero, self.block_size, self.block_size,
                                        color=(255, 255, 255), batch=self.batch)
 
-        self.target = shapes.Rectangle(self.screen_x_zero, self.screen_y_zero, self.block_size/4, self.block_size/4,
+        self.target = shapes.Rectangle(self.screen_x_zero, self.screen_y_zero, self.block_size / 4, self.block_size / 4,
                                        color=(255, 255, 255), batch=self.batch)
 
         self.frame_indicator_state = True
@@ -130,9 +137,11 @@ class PygletGame(pyglet.window.Window):
         samples = np.sin(2 * np.pi * np.arange(n_samples) * frequency / self.audio_fs).astype(
             np.float32) * self.audio_volume * volume
         try:
-            sd.play(samples, self.audio_fs)
+            # sd.play(samples, self.audio_fs)
+            pass
         except sd.PortAudioError as e:
-            logging.error(f'Failed to play audio: {e}')
+            pass
+            # logging.error(f'Failed to play audio: {e}')
 
     def exit(self):
         # logging.info(f'{self.n_trials} with {self.n_success}')
@@ -158,13 +167,6 @@ if __name__ == "__main__":
         }[cli_args.verbose]
     except KeyError:
         loglevel = logging.DEBUG
-
-    print(loglevel)
-    log_format = '[%(asctime)s]{%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
-    logging.basicConfig(level=loglevel,
-                        format=log_format,
-                        datefmt='%H:%M:%S',
-                        force=True)
 
     logging.warning('test')
 
