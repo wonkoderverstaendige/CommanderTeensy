@@ -8,12 +8,12 @@ PulsePin::PulsePin(int pinID, int pinNr, int polarity) {
   pinMode(pinID, OUTPUT);
   
   this->nextChangeTime = 0;
-  this->run = true;
+  this->run = false;
 }
 
 void PulsePin::update() {
   if (run) {
-    if(current_micros < this->nextChangeTime) {
+    if(current_millis < this->nextChangeTime) {
       digitalWriteFast(this->pinNr, this->polarity);
     } else {
       digitalWriteFast(this->pinNr, !this->polarity);
@@ -22,12 +22,13 @@ void PulsePin::update() {
 }
 
 void PulsePin::pulse(unsigned long duration) {
+  this->run = true;
   this->nextChangeTime = current_millis + duration;
   Serial.println(this->nextChangeTime);
 }
 
 void PulsePin::restart() {
-  this->run = true;
+  this->run = false;
   this->nextChangeTime = 0;
   digitalWriteFast(this->pinNr, !this->polarity);
 }
