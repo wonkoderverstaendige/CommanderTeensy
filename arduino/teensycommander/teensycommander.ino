@@ -30,6 +30,7 @@ elapsedMillis current_millis;
 
 const int pinsPulsePins[] = {13, 14};
 const int nPulsePins = sizeof(pinsPulsePins) / sizeof(pinsPulsePins[0]);
+//PulsePin** pulsePins;
 PulsePin** pulsePins = new PulsePin*[nPulsePins];
 
 FastCRC16 CRC16;
@@ -126,7 +127,7 @@ dataPacket State;
 
 void setup() {
   pinMode(ledPin, OUTPUT);
-
+  
   // analog input channels
   analogReadResolution(16);
   for (int i=0; i<nAnalogIn; i++) {
@@ -160,7 +161,10 @@ void setup() {
   gatherTimer.priority(200);
   gatherTimer.begin(gather, 1000);
 
-  pulsePins[0]->pulse(1000000);
+  // DEBUGGING
+  //delay(50);
+  //current_micros = 4294967200;
+  //pulsePins[0]->pulseMicro(5000000);
 }
 
 void loop() {
@@ -196,10 +200,9 @@ void loop() {
     EXTSERIAL.println("S_B overflow!");
   }
 
-
   // check if timed pins need updates
   for (size_t i = 0; i < nPulsePins; ++i) {
-    pulsePins[i]->update();
+    pulsePins[i]->updateMicro();
   }
   digitalWriteFast(LOOP_INDICATOR, HIGH);
 }

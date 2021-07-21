@@ -21,6 +21,27 @@ void PulsePin::update() {
   }
 }
 
+void PulsePin::updateMicro() {
+  if (run) {
+    //if(current_micros < this->nextChangeTime && abs(nextChangeTime-current_micros) <= maxPulseDur){
+    if((current_micros < this->nextChangeTime && (signed long)(this->nextChangeTime-current_micros) > 0)) {
+      digitalWriteFast(this->pinNr, this->polarity);
+      Serial.println(this->polarity);
+    }
+    else {
+      digitalWriteFast(this->pinNr, !this->polarity);
+      run = false;
+      Serial.println(!this->polarity);
+    }
+  }
+}
+
+void PulsePin::pulseMicro(unsigned long duration) {
+  this->run = true;  
+  this->nextChangeTime = current_micros + duration; 
+  Serial.println(this->nextChangeTime);
+}
+
 void PulsePin::pulse(unsigned long duration) {
   this->run = true;
   this->nextChangeTime = current_millis + duration;

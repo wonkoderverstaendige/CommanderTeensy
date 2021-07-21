@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 extern elapsedMillis current_millis;
+extern elapsedMicros current_micros;
 
 class PulsePin {
   
@@ -12,6 +13,8 @@ class PulsePin {
   	int polarity;
   	unsigned long nextChangeTime;
   	boolean run;
+    unsigned long maxMicro = 4294967295;
+    unsigned long maxPulseDur = 100000000;
     
   public:
     // Setup pin 
@@ -19,6 +22,9 @@ class PulsePin {
     
     // Check the states
     void update();
+
+    void updateMicro();
+    void pulseMicro(unsigned long duration);
 	
   	// Stop updating etc.
   	void stop();
