@@ -1,3 +1,5 @@
+// PROGRAM AS TRIPLE SERIAL!
+
 #include <Encoder.h>
 #include <FastCRC.h>
 #include <PacketSerial.h>
@@ -21,6 +23,11 @@ Encoder wheelEncoder(WHEEL_ENC_PINA, WHEEL_ENC_PINB);
 #define GATHER_INDICATOR 8
 #define LOOP_INDICATOR 9
 
+// interval Timer creation
+IntervalTimer gatherTimer;
+elapsedMicros current_micros;
+elapsedMillis current_millis;
+
 const int pinsPulsePins[] = {13, 14};
 const int nPulsePins = sizeof(pinsPulsePins) / sizeof(pinsPulsePins[0]);
 PulsePin** pulsePins = new PulsePin*[nPulsePins];
@@ -28,11 +35,6 @@ PulsePin** pulsePins = new PulsePin*[nPulsePins];
 FastCRC16 CRC16;
 PacketSerial packetSerialA;
 PacketSerial packetSerialB;
-
-// interval Timer creation
-IntervalTimer gatherTimer;
-elapsedMicros current_micros;
-elapsedMillis current_millis;
 
 // intermediate values
 long encoderPosition = 0;
