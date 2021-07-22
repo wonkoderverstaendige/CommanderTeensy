@@ -122,7 +122,7 @@ class PygletGame(pyglet.window.Window):
                 self.target.y = (0 + 1) / 2 * self.sh - self.target.height / 2
 
             self.cursor.visible = self.experiment.cue_visible
-            self.target.visible = self.experiment.trial_active
+            self.target.visible = self.experiment.trial_active and self.experiment.target_visible
 
         if self.frame_indicator:
             self.frame_indicator.color = self.frame_indicator_colors[self.frame_indicator_state]
@@ -137,11 +137,10 @@ class PygletGame(pyglet.window.Window):
         samples = np.sin(2 * np.pi * np.arange(n_samples) * frequency / self.audio_fs).astype(
             np.float32) * self.audio_volume * volume
         try:
-            # sd.play(samples, self.audio_fs)
-            pass
+            sd.play(samples, self.audio_fs)
         except sd.PortAudioError as e:
+            logging.error(f'Failed to play audio: {e}')
             pass
-            # logging.error(f'Failed to play audio: {e}')
 
     def exit(self):
         # logging.info(f'{self.n_trials} with {self.n_success}')
