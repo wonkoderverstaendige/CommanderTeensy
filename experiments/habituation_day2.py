@@ -4,7 +4,7 @@ import random
 import time
 
 TRANSLATION_FACTOR = 2 ** 16  #
-MAX_TRIAL_LENGTH = random.gauss(10, 2)
+MAX_TRIAL_LENGTH = 5 #random.gauss(10, 2)
 FACTOR_OVERSHOOT = .3  # movement in wrong direction
 
 
@@ -56,7 +56,7 @@ class Experiment(ExperimentSkeleton):
             return
         logging.info(
             f'Ending trial {self.n_trial} with {"success" if success else "failure"} due to "{result[0]}" after {result[1]:0.1f} s')
-        self.trial_active = False
+        
         if success:
             self.n_success += 1
         else:
@@ -64,17 +64,21 @@ class Experiment(ExperimentSkeleton):
 
         #self.cue_visible = False
             
-            # Missing: wait 500 milli, solenoid, 500 milli, then cue invisible for 1 sec and restart
+        # Missing: wait 500 milli, solenoid, 500 milli, then cue invisible for 1 sec and restart
+        #self.frontend.pause_game(10)
 
         if success:
             self.trigger_solenoid()
             self.frontend.play_sine(1000, 200)
-            self.timeout(0.5)
-            #self.cue_visible = False
-            #self.timeout(10)
         else:
             self.frontend.play_sine(300, 500)
             self.timeout(1)
+            
+        self.timeout(0.5)
+        self.trial_active = False
+        #self.frontend.pause_game(1)
+        #self.cue_visible = False
+        #time.sleep(1)
         
 
     def trigger_solenoid(self, solenoid=0, pulse_duration=25):

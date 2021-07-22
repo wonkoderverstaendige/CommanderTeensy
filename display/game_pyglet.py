@@ -30,6 +30,8 @@ class PygletGame(pyglet.window.Window):
         self.sw = self.screen.width
         self.sh = self.screen.height
 
+        self.event_loop = pyglet.app.EventLoop()
+        
         config = pyglet.gl.Config(double_buffer=buffered)
         pyglet.options['vsync'] = vsync
 
@@ -146,6 +148,9 @@ class PygletGame(pyglet.window.Window):
         # logging.info(f'{self.n_trials} with {self.n_success}')
         self.close()
         pyglet.app.exit()
+        
+    def pause_game(self, duration):
+        self.event_loop.sleep(duration)
 
 
 if __name__ == "__main__":
