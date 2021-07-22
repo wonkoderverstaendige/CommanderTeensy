@@ -30,8 +30,6 @@ class PygletGame(pyglet.window.Window):
         self.sw = self.screen.width
         self.sh = self.screen.height
 
-        self.event_loop = pyglet.app.EventLoop()
-        
         config = pyglet.gl.Config(double_buffer=buffered)
         pyglet.options['vsync'] = vsync
 
@@ -73,7 +71,7 @@ class PygletGame(pyglet.window.Window):
         self.zmq_pub = self.zmq_ctx.socket(zmq.PUB)
         self.zmq_pub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_PUB_PORT}")
 
-        self.audio_fs = 44100
+        self.audio_fs = 48000
         # global "maximum" volume
         self.audio_volume = sound_volume
 
@@ -148,10 +146,6 @@ class PygletGame(pyglet.window.Window):
         # logging.info(f'{self.n_trials} with {self.n_success}')
         self.close()
         pyglet.app.exit()
-        
-    def pause_game(self, duration):
-        self.event_loop.sleep(duration)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

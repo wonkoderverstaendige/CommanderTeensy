@@ -13,7 +13,7 @@ import datetime
 
 def play_sinewave(frequency, duration):
     volume = 0.5
-    fs = 44100
+    fs = 48000
     samples = (np.sin(2 * np.pi * np.arange(fs * duration) * frequency / fs)).astype(np.float32)
     sd.play(samples, fs)
 

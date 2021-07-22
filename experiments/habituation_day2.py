@@ -78,11 +78,6 @@ class Experiment(ExperimentSkeleton):
         else:
             self.n_failure += 1
 
-        #self.cue_visible = False
-            
-        # Missing: wait 500 milli, solenoid, 500 milli, then cue invisible for 1 sec and restart
-        #self.frontend.pause_game(10)
-
         if success:
             self.trigger_solenoid()
             self.frontend.play_sine(1000, 200)
@@ -98,7 +93,6 @@ class Experiment(ExperimentSkeleton):
         self.cue_visible = False
         self.timeout(3)
         
-
     def trigger_solenoid(self, solenoid=0, pulse_duration=25):
         logging.debug('GIVING THE JUICE!')
         self.frontend.send({'instruction': 'pulse', 'pin': solenoid, 'data': [pulse_duration]})
