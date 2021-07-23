@@ -4,7 +4,6 @@ import time
 from datetime import datetime
 import zmq
 import threading
-from cobs import cobs
 
 import serial
 import serial.threaded
@@ -18,8 +17,6 @@ from commander_teensy.WebInterface import WebInterface, WS_PORT, HTTP_PORT
 from commander_teensy.CursesInterface import CursesUI
 
 SERIAL_PORT = 'COM5'
-WS_PORT = 5678
-HTTP_PORT = 8000
 
 ZMQ_SERVER_PUB_PORT = 5680
 ZMQ_SERVER_SUB_PORT = 5681
