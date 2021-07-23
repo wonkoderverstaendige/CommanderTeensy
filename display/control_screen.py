@@ -43,7 +43,7 @@ class ControlScreen(pyglet.window.Window):
         self.zmq_sub = self.zmq_ctx.socket(zmq.SUB)
         self.zmq_sub.setsockopt_string(zmq.SUBSCRIBE, "")
         #self.zmq_sub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_SUB_PORT}")
-        self.zmq_sub.connect(f"tcp://127.0.0.1:9999")
+        self.zmq_sub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_SUB_PORT}")
     
         self.x = 0
         self.y = 0

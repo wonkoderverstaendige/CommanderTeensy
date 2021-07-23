@@ -5,17 +5,17 @@ import time
 import math
 
 TRANSLATION_FACTOR = 2 ** 16  #
-MAX_TRIAL_LENGTH = 10
+MAX_TRIAL_LENGTH = 60
 FACTOR_OVERSHOOT = .1  # movement in wrong direction
 START_DELAY_MIN = 0.2
 START_DELAY_MAX = 0.5
-MAXIMUM_MOVEMENT = 0.05
+MAXIMUM_MOVEMENT = 0.5
+MAX_TRIAL_NUMBER = 400
 
 
 class Experiment(ExperimentSkeleton):
     def __init__(self, *args, **kwargs):
         super(Experiment, self).__init__(*args, **kwargs)
-        #self.frontend.play_sine(10000, 100)
         self.target_visible = False
         self.n_trial = 0
         self.n_success = 0
@@ -32,7 +32,6 @@ class Experiment(ExperimentSkeleton):
         self.timeout_failure = False
 
     def start_trial(self, goal=0):
-        # state transitions should be communicated to teensy
         self.cue_visible = False
         self.t_start_trial = time.time()
 
@@ -49,12 +48,14 @@ class Experiment(ExperimentSkeleton):
         # not move wheel for 200 - 500 ms
 
     def update(self, packets):
-        
-        #if packets and trial_active:
-        #    self.x = packets[-1].states[7] / TRANSLATION_FACTOR
-                
+        if packets and self.trial_active:
+            self.x = packets[-1].states[7] / TRANSLATION_FACTOR
+            
         if self.trial_active == None:
             self.start_trial()
+            
+        if self.n_trial >= MAX_TRIAL_NUMBER:
+            self.frontend.exit()
             
         if self.trial_active == 1:
             if (self.t_start_timeout_end == None):
@@ -91,7 +92,6 @@ class Experiment(ExperimentSkeleton):
                 if self.t_timeout_end < time.time() and self.timeout_failure:
                     self.end_trial(success=False, result=('overshoot', t_delta))
             
-            #success = self.x < self.current_goal if self.current_goal < 0 else self.x > self.current_goal
             success = (abs(self.current_goal-self.x) <= 0.1)
             if success:
                 self.end_trial(success, ('goal', t_delta))
@@ -108,10 +108,8 @@ class Experiment(ExperimentSkeleton):
         else:
             self.n_failure += 1
             
-
         if success:
             self.trigger_solenoid()
-            self.frontend.play_sine(1000, 200)
         else:
             self.frontend.play_sine(300, 500)
             self.timeout(1)
