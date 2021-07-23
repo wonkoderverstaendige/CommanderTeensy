@@ -36,7 +36,7 @@ class Experiment(ExperimentSkeleton):
         self.t_start_trial = time.time()
 
         self.n_trial += 1
-        self.starting_position = (random.randint(0, 1) * 2 - 1) * 0.9 / TRANSLATION_FACTOR
+        self.starting_position = (random.randint(0, 1) * 2 - 1) * 0.9 
         self.x = self.starting_position
         
         self.start_delay = random.uniform(START_DELAY_MIN, math.sqrt(START_DELAY_MAX))**2
