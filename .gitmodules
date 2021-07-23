@@ -1,0 +1,3 @@
+[submodule "web/webgl-plot"]
+	path = web/webgl-plot
+	url = https://github.com/danchitnis/webgl-plot
