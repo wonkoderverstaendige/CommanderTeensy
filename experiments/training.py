@@ -36,7 +36,7 @@ class Experiment(ExperimentSkeleton):
         self.t_start_trial = time.time()
 
         self.n_trial += 1
-        self.starting_position = (random.randint(0, 1) * 2 - 1) * 0.9
+        self.starting_position = (random.randint(0, 1) * 2 - 1) * 0.9 / TRANSLATION_FACTOR
         self.x = self.starting_position
         
         self.start_delay = random.uniform(START_DELAY_MIN, math.sqrt(START_DELAY_MAX))**2
@@ -44,12 +44,10 @@ class Experiment(ExperimentSkeleton):
         logging.info(f'Starting trial {self.n_trial} from the {"left" if self.x < 0 else "right"} with a delay of {self.start_delay} seconds')
        
         self.trial_active = 1
-        
-        # not move wheel for 200 - 500 ms
 
     def update(self, packets):
         if packets and self.trial_active:
-            self.x = packets[-1].states[7] / TRANSLATION_FACTOR
+            self.x = self.x_zero - packets[-1].states[7] / TRANSLATION_FACTOR
             
         if self.trial_active == None:
             self.start_trial()
