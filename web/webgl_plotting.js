@@ -2,7 +2,8 @@
 
 import {CanvasPlot} from "./CanvasPlot.js";
 
-let numPoints = 10000;
+let numPoints = 2000;
+const downsamplingFactor = 5;
 const numAnalogIn = 8;
 const numStates = 8;
 const numDigitalIn = 16;
@@ -73,15 +74,26 @@ window.addEventListener("resize", () => {
 });
 
 function processMessages() {
-    let packets = message_queue;
-    message_queue = [];
-    updateTextDisplay(packets[packets.length - 1]);
+    // are we buffering too much?
+    if (message_queue.length > 10000) {
+        message_queue = [];
+    }
+    let packets = [];
+    let dsPackets = [];
+    while (message_queue.length >= downsamplingFactor) {
+        packets = message_queue.splice(0, downsamplingFactor);
+        dsPackets.push(packets[packets.length-1]);
+    }
+
+    if (!dsPackets.length) return;
+    updateTextDisplay(dsPackets[dsPackets.length - 1]);
     wgl_plots.forEach((plot) => {
-        plot.update(packets);
+        plot.update_data(dsPackets);
+        plot.plot.update();
     });
 }
 
-// Animation/update ticks, maybe lower to 30 fps?
+// Animation/update_data ticks, maybe lower to 30 fps?
 function newFrame() {
     processMessages();
     requestAnimationFrame(newFrame);

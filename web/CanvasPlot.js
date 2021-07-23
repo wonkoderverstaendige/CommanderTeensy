@@ -1,4 +1,4 @@
-import {WebglPlot, ColorRGBA, WebglLine} from "https://cdn.skypack.dev/webgl-plot";
+import {WebglPlot, ColorRGBA, WebglLine} from "./webgl-plot/dist/webglplot.js";
 
 // TODO: Input buffer + downsampling for extended periods
 // TODO: Interactivity (pause, zoom, select, time on axis)
@@ -45,7 +45,8 @@ export class CanvasPlot {
         this.plot.gScaleX = 1;
     }
 
-    update(packets) {
+    update_data(packets) {
+        if (packets == null) return;
         let nLine = 0;
         for (const [partitionID, partition] of Object.entries(this.cfg.partitions)) {
             for (let i=0; i < partition.numLines; i++) {
@@ -57,7 +58,6 @@ export class CanvasPlot {
                 nLine++;
             }
         }
-        this.plot.update();
     }
 }
 
