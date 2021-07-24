@@ -32,6 +32,7 @@ class Experiment(ExperimentSkeleton):
         self.n_trial += 1
         logging.info(f'Starting trial {self.n_trial} with goal {self.current_goal}')
         self.trial_active = True
+        self.target_visible = True
         self.x = 0
 
     def update(self, packets):
