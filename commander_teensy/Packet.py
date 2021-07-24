@@ -36,7 +36,6 @@ DataPacketDesc = {'type': 'B',
 DataPacket = namedtuple('DataPacket', DataPacketDesc.keys())
 DataPacketStruct = '<' + ''.join(DataPacketDesc.values())
 DataPacketSize = struct.calcsize(DataPacketStruct)
-logging.info(f"Packet size: {DataPacketSize} Bytes in {DataPacketStruct}")
 
 Instructions = {'low': 0,
                 'high': 1,
@@ -54,7 +53,6 @@ CommandPacketDesc = {'type': 'B',
 CommandPacket = namedtuple('CommandPacket', CommandPacketDesc.keys())
 CommandPacketStruct = '<' + ''.join(CommandPacketDesc.values())
 CommandPacketSize = struct.calcsize(CommandPacketStruct)
-logging.info(f"CommandPacket size: {CommandPacketSize} Bytes in {CommandPacketStruct}")
 
 PinPulsePacket = {'pin': 'B',
                   'duration': 'H'}
