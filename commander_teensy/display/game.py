@@ -1,13 +1,14 @@
 import argparse
-
 import logging
+import numpy as np
+import sys
+from pathlib import Path
 
 log_format = '[%(asctime)s]{%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.DEBUG,
                     format=log_format,
                     datefmt='%H:%M:%S')
 
-import numpy as np
 import pyglet
 import sounddevice as sd
 
@@ -19,12 +20,12 @@ import importlib
 from commander_teensy.TeensyCommander import ZMQ_SERVER_PUB_PORT as ZMQ_CLIENT_SUB_PORT
 from commander_teensy.TeensyCommander import ZMQ_SERVER_SUB_PORT as ZMQ_CLIENT_PUB_PORT
 
-TEENSY_STATE_VARIABLE_IDX = 7
+DEFAULT_MAX_VOLUME = 0.05
 
 
 class PygletGame(pyglet.window.Window):
     def __init__(self, fullscreen=False, resizable=True, vsync=True, buffered=True, screen_id=0, frame_indicator=False,
-                 experiment_module=None, sound_volume=0.5):
+                 experiment_path=None, sound_volume=DEFAULT_MAX_VOLUME):
         self._display = pyglet.canvas.Display()
         self._screen = self.display.get_screens()[screen_id]
         self.sw = self.screen.width
@@ -42,23 +43,18 @@ class PygletGame(pyglet.window.Window):
         self.batch = pyglet.graphics.Batch()
         self.keyboard = key.KeyStateHandler()
 
-        self.block_size = self.sw // 15
-        self.screen_x_zero = (self.sw - self.block_size) // 2
-        self.screen_y_zero = (self.sh - self.block_size) // 2
-
-        self.cursor = shapes.Rectangle(self.screen_x_zero, self.screen_y_zero, self.block_size, self.block_size,
-                                       color=(255, 255, 255), batch=self.batch)
-
-        self.target = shapes.Rectangle(self.screen_x_zero, self.screen_y_zero, self.block_size / 4, self.block_size / 4,
-                                       color=(255, 255, 255), batch=self.batch)
-
         self.frame_indicator_state = True
         self.frame_indicator_colors = {True: (0, 0, 0), False: (255, 255, 255)}
-        self.frame_indicator = None if not frame_indicator else shapes.Rectangle(self.sw - self.block_size,
-                                                                                 self.sh - self.block_size,
-                                                                                 self.block_size,
-                                                                                 self.block_size, color=(255, 255, 255),
+        indicator_size = self.sw // 25
+        self.frame_indicator = None if not frame_indicator else shapes.Rectangle(self.sw - indicator_size,
+                                                                                 self.sh - indicator_size,
+                                                                                 indicator_size,
+                                                                                 indicator_size, color=(255, 255, 255),
                                                                                  batch=self.batch)
+
+        cursor_size = self.sw // 15
+        self.cursor = shapes.Rectangle(0, 0, cursor_size, cursor_size, color=(255, 255, 255), batch=self.batch)
+        self.cursor.visible = True
 
         self.fps_display = pyglet.window.FPSDisplay(window=self)
         pyglet.clock.schedule_interval(self.update, 1 / 60.0)
@@ -72,28 +68,39 @@ class PygletGame(pyglet.window.Window):
         self.zmq_pub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_PUB_PORT}")
 
         self.audio_fs = 48000
-        # global "maximum" volume
-        self.audio_volume = sound_volume
+        self.audio_volume = sound_volume  # global "maximum" volume
 
         self.experiment = None
-        if experiment_module:
-            logging.info(f'Loading module {experiment_module}')
-            experiment_module = importlib.import_module('.' + experiment_module, 'experiments')
-            self.experiment = experiment_module.Experiment(self)
+        if experiment_path:
+            logging.info(f'Loading module {experiment_path}')
+            experiment_path = Path(experiment_path).resolve()
+            if not experiment_path.exists() or experiment_path.is_dir():
+                raise FileNotFoundError(f"Module '{experiment_path}' not found.")
 
-        logging.debug('Starting engine...')
+            sys.path.append(str(experiment_path.parent))
+            logging.info(f'Adding {experiment_path.parent} to path to import "{experiment_path.stem}"')
+            experiment_module = importlib.import_module(experiment_path.stem)
+            sys.path.pop()
+            self.experiment = experiment_module.Experiment(self)
+        else:
+            logging.warning(f'No experiment specified! Using base ExperimentSkeleton.')
+            from commander_teensy.display.Experiment import ExperimentSkeleton as Experiment
+            self.experiment = Experiment(self)
+        self.experiment.start()
+
+        logging.debug('Starting pyglet app...')
         pyglet.app.run()
 
     def update(self, dt):
-        # TODO: State updates should take all received packets into account
-        messages = []
+        packets = []
         while True:
             try:
                 msg = self.zmq_sub.recv_pyobj(zmq.DONTWAIT)
-                messages.append(msg)
+                packets.append(msg)
             except zmq.Again:
                 break
-        self.experiment.update(messages)
+        self.experiment.process_packets(packets)
+        self.experiment.update_states()
 
     def send(self, instruction):
         self.zmq_pub.send_pyobj(instruction)
@@ -113,16 +120,16 @@ class PygletGame(pyglet.window.Window):
 
     def on_draw(self):
         self.clear()
-        if self.experiment:
-            self.cursor.x = (self.experiment.x + 1) / 2 * self.sw - self.cursor.width / 2
-            self.cursor.y = (self.experiment.y + 1) / 2 * self.sh - self.cursor.height / 2
-
-            if self.experiment.current_goal is not None:
-                self.target.x = (self.experiment.current_goal + 1) / 2 * self.sw - self.target.width / 2
-                self.target.y = (0 + 1) / 2 * self.sh - self.target.height / 2
-
-            self.cursor.visible = self.experiment.cue_visible
-            self.target.visible = self.experiment.trial_active and self.experiment.target_visible
+        # if self.experiment:
+        self.cursor.x = (self.experiment.x + 1) / 2 * self.sw - self.cursor.width / 2
+        self.cursor.y = (self.experiment.y + 1) / 2 * self.sh - self.cursor.height / 2
+        #
+        #     if self.experiment.current_goal is not None:
+        #         self.target.x = (self.experiment.current_goal + 1) / 2 * self.sw - self.target.width / 2
+        #         self.target.y = (0 + 1) / 2 * self.sh - self.target.height / 2
+        #
+        #     self.cursor.visible = self.experiment.cue_visible
+        #     self.target.visible = self.experiment.trial_active and self.experiment.target_visible
 
         if self.frame_indicator:
             self.frame_indicator.color = self.frame_indicator_colors[self.frame_indicator_state]
@@ -143,30 +150,32 @@ class PygletGame(pyglet.window.Window):
             pass
 
     def exit(self):
-        # logging.info(f'{self.n_trials} with {self.n_success}')
         self.close()
         pyglet.app.exit()
 
-if __name__ == "__main__":
+
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--screen', type=int, default=0)
-    parser.add_argument('-e', '--experiment', type=str, help="Name of experiments module in ../experiments/")
+    parser.add_argument('-e', '--experiment', type=str, help="Path to experiments file")
     parser.add_argument('-I', '--indicator', action='store_true', help='Show frame update indicator')
     parser.add_argument('-F', '--fullscreen', action='store_true', help='Show frame update indicator')
-    parser.add_argument('-V', '--volume', type=float, help='Global maximum audio volume', default=0.5)
+    parser.add_argument('-V', '--volume', type=float, help='Global maximum audio volume', default=DEFAULT_MAX_VOLUME)
     parser.add_argument('-v', '--verbose', action='count', default=0, help="Increase logging verbosity")
     cli_args = parser.parse_args()
 
-    try:
-        loglevel = {
-            0: logging.ERROR,
-            1: logging.WARN,
-            2: logging.INFO,
-        }[cli_args.verbose]
-    except KeyError:
-        loglevel = logging.DEBUG
+    # try:
+    #     loglevel = {
+    #         0: logging.ERROR,
+    #         1: logging.WARN,
+    #         2: logging.INFO,
+    #     }[cli_args.verbose]
+    # except KeyError:
+    #     loglevel = logging.DEBUG
 
-    logging.warning('test')
-
-    game = PygletGame(screen_id=cli_args.screen, fullscreen=cli_args.fullscreen, experiment_module=cli_args.experiment,
+    game = PygletGame(screen_id=cli_args.screen, fullscreen=cli_args.fullscreen, experiment_path=cli_args.experiment,
                       frame_indicator=cli_args.indicator, sound_volume=cli_args.volume)
+
+
+if __name__ == "__main__":
+    main()

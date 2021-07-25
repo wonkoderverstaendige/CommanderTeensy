@@ -1,4 +1,4 @@
-from .Experiment import ExperimentSkeleton
+from commander_teensy.display.Experiment import ExperimentSkeleton
 import logging
 import random
 import time
