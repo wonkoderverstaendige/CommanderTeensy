@@ -204,6 +204,7 @@ void loop() {
   for (size_t i = 0; i < nPulsePins; ++i) {
     pulsePins[i]->updateMicro();
   }
+  
   digitalWriteFast(LOOP_INDICATOR, HIGH);
 }
 
@@ -313,7 +314,7 @@ void processInstruction (const uint8_t* buf, size_t buf_sz) {
         for (size_t b=0; b<sizeof(bul); b++) {
           bul.bytes[b] = data[b];
         }
-        pulsePins[ip->target]->pulse(bul.ulong);
+        pulsePins[ip->target]->pulseMicro(bul.ulong*1000);
         break;
       default: 
         EXTSERIAL.println("Unknown command"); 
