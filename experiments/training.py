@@ -103,7 +103,7 @@ class Experiment(ExperimentSkeleton):
             self.manual_x = 0
             self.x_zero = -self.last_wheel_position + self.starting_position
             self.x = self.x_zero
-            self.frontend.play_sine(5000, 100, volume=0.2)
+            self.frontend.play_sine(5000, 100, volume=0.5)
             self.current_state = self.state_steering
             self.cursor.visible = True
 
@@ -140,6 +140,9 @@ class Experiment(ExperimentSkeleton):
             self.n_success += 1
         else:
             self.n_failure += 1
+
+        total = self.n_success + self.n_failure
+        logging.info(f'Total: {self.n_trial}, Successes: {self.n_success} ({self.n_success/total*100:0.1f}% correct)!')
 
         if success:
             self.trigger_solenoid(solenoid=1, duration=30)

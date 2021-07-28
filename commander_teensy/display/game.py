@@ -149,7 +149,7 @@ class PygletGame(pyglet.window.Window):
             pass
 
     def play_whitenoise(self, duration, volume=1.0):
-        wn = np.random.random(int(self.audio_fs*duration)).astype(np.float32)*(volume*self.audio_volume)
+        wn = np.random.random(int(self.audio_fs*duration/1000)).astype(np.float32)*(volume*self.audio_volume)
         try:
             sd.play(wn, self.audio_fs)
         except sd.PortAudioError as e:
