@@ -20,8 +20,10 @@ const int nStates = 8;
 #define WHEEL_ENC_PINB 6
 Encoder wheelEncoder(WHEEL_ENC_PINA, WHEEL_ENC_PINB);
 
-#define GATHER_INDICATOR 8
-#define LOOP_INDICATOR 9
+#define GATHER_INDICATOR 41
+#define LOOP_INDICATOR 40
+#define PIN_SYNC_LED 10
+#define PIN_CAMERA_FSTROBE 2
 
 // interval Timer creation
 IntervalTimer gatherTimer;
@@ -30,7 +32,6 @@ elapsedMillis current_millis;
 
 const int pinsPulsePins[] = {13, 14};
 const int nPulsePins = sizeof(pinsPulsePins) / sizeof(pinsPulsePins[0]);
-//PulsePin** pulsePins;
 PulsePin** pulsePins = new PulsePin*[nPulsePins];
 
 FastCRC16 CRC16;
@@ -65,6 +66,11 @@ union bytesToULong {
   unsigned long ulong;
 };
 
+const uint16_t syncCounterMax = 0x95FF;
+const uint16_t syncCounterMin = 0x9500;
+volatile uint16_t syncCounter = syncCounterMax;
+volatile byte syncCounterIdx = 0;
+volatile bool updateSyncCounter = true;
 
 volatile unsigned long packetCount = 0;
 struct dataPacket {
@@ -143,6 +149,8 @@ void setup() {
   for (int i=0; i<nDigitalOut; i++) {
     pinMode(pinsDigitalOut[i], OUTPUT);
   }
+  pinMode(GATHER_INDICATOR, OUTPUT);
+  pinMode(LOOP_INDICATOR, OUTPUT);
   
   for (int i=0; i<nPulsePins; i++) {
     pulsePins[i] = new PulsePin(i, pinsPulsePins[i], HIGH);
@@ -161,10 +169,7 @@ void setup() {
   gatherTimer.priority(200);
   gatherTimer.begin(gather, 1000);
 
-  // DEBUGGING
-  //delay(50);
-  //current_micros = 4294967200;
-  //pulsePins[0]->pulseMicro(5000000);
+  attachInterrupt(digitalPinToInterrupt(PIN_CAMERA_FSTROBE), syncBlink, CHANGE);
 }
 
 void loop() {
@@ -172,6 +177,16 @@ void loop() {
   // check current serial status
   packetSerialA.update();
   packetSerialB.update();
+
+  if (updateSyncCounter) {
+    updateSyncCounter = false;
+    if (++syncCounterIdx > 15) {
+      syncCounterIdx = 0;
+      if (++syncCounter > syncCounterMax) {
+        syncCounter = syncCounterMin;
+      }
+    }
+  }
 
   if (packetReady) {
     State.crc16 = CRC16.kermit((uint8_t*) &State, sizeof(State));
@@ -285,16 +300,21 @@ PulsePin* getPulsePinById(byte id){
   return 0;
 }
 
+void syncBlink() {
+  bool edge = !digitalReadFast(PIN_CAMERA_FSTROBE);
+  if (edge) {
+    digitalWriteFast(PIN_SYNC_LED, (syncCounter >> syncCounterIdx) & 0x1);
+    updateSyncCounter = true;
+  } else {
+    digitalWriteFast(PIN_SYNC_LED, LOW);
+  }
+  
+  
+}
+
 void processInstruction (const uint8_t* buf, size_t buf_sz) {
-//  EXTSERIAL.println("INSTR");
-//  dumpBuffer(buf, buf_sz);
-//  delay(1);
   struct instructionPacket* ip = (struct instructionPacket*)buf;
   char* data = (char*)ip->data;
-
-  EXTSERIAL.println(ip->instruction, DEC);
-  EXTSERIAL.println(ip->target, DEC);
-  delay(1);
   
   switch(ip->instruction){
       case instPIN_LOW:   
