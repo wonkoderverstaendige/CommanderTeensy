@@ -86,7 +86,6 @@ class PygletGame(pyglet.window.Window):
             logging.warning(f'No experiment specified! Using base ExperimentSkeleton.')
             from commander_teensy.display.Experiment import ExperimentSkeleton as Experiment
             self.experiment = Experiment(self)
-        self.experiment.start()
 
         logging.debug('Starting pyglet app...')
         pyglet.app.run()
@@ -148,6 +147,13 @@ class PygletGame(pyglet.window.Window):
         except sd.PortAudioError as e:
             logging.error(f'Failed to play audio: {e}')
             pass
+
+    def play_whitenoise(self, duration, volume=1.0):
+        wn = np.random.random(int(self.audio_fs*duration)).astype(np.float32)*(volume*self.audio_volume)
+        try:
+            sd.play(wn, self.audio_fs)
+        except sd.PortAudioError as e:
+            logging.error(f'Failed to play white noise: {e}')
 
     def exit(self):
         self.close()

@@ -4,15 +4,15 @@ import random
 import time
 import math
 
-from pyglet import shapes
+WHEEL_AMPLIFICATION = 1     # amplifying wheel displacement
+TRANSLATION_FACTOR = 1/126 * WHEEL_AMPLIFICATION
 
-WHEEL_AMPLIFICATION = 4     # amplifying wheel displacement
-TRANSLATION_FACTOR = 2 ** -13 * WHEEL_AMPLIFICATION
-
-MAX_TRIAL_DURATION = 10     # Maximum trial length in seconds
+MAX_TRIAL_DURATION = 60     # Maximum trial length in seconds
 MAX_OVERSHOOT = 1.1          # allowed movement in wrong direction
-MAX_HOLD_MOVEMENT = 20      # allowed movement during "holding" timeout
+MAX_HOLD_MOVEMENT = 1/6      # allowed movement during "holding" timeout
 MAX_TRIAL_NUMBER = 400      # maximum trials allowed for session
+
+START_POS_OFFSET = 0.63
 
 START_DELAY_MIN = 0.2       # delay of trial onset
 START_DELAY_MAX = 0.5
@@ -53,6 +53,7 @@ class Experiment(ExperimentSkeleton):
         self.trial_result = None
 
         self.cursor = self.frontend.cursor
+        self.frontend.cursor.visible = False
 
     def start(self):
         self.start_trial()
@@ -62,10 +63,10 @@ class Experiment(ExperimentSkeleton):
         self.t_start_trial = time.time()
 
         self.n_trial += 1
-        self.starting_position = (random.randint(0, 1) * 2 - 1) * 0.9
+        self.starting_position = (random.randint(0, 1) * 2 - 1) * START_POS_OFFSET
         self.manual_x = 0
-        self.x_zero = self.last_wheel_position + self.starting_position
-        self.x = self.x_zero
+        self.x_zero = -self.last_wheel_position
+        self.x = self.x_zero + self.starting_position
         self.cursor.visible = False
 
         self.start_delay = random.uniform(START_DELAY_MIN, math.sqrt(START_DELAY_MAX)) ** 2
@@ -87,18 +88,22 @@ class Experiment(ExperimentSkeleton):
             self.current_state = self.next_state
 
     def state_holdout(self):
-        # wait here for X seconds without turning wheel
-        if abs(self.x - self.starting_position) > MAX_HOLD_MOVEMENT:
+        self.x = self.x_zero + self.last_wheel_position + self.manual_x
+        # wait here for X seconds without turning
+        dx = abs(self.x - self.starting_position)
+        if dx > MAX_HOLD_MOVEMENT:
             logging.info(f'Hold movement exceeded. Timeout for {self.start_delay:0.2f}s')
-            self.timeout(self.start, self.state_holdout)
+            self.x_zero = -self.last_wheel_position + self.starting_position
+            self.x = self.x_zero + self.last_wheel_position + self.starting_position
+            self.timeout(self.start_delay, self.state_holdout)
             return
 
         # else move into interactive mode
         if time.time() >= self.t_timeout_end:
             self.manual_x = 0
-            self.x_zero = self.last_wheel_position + self.starting_position
+            self.x_zero = -self.last_wheel_position + self.starting_position
             self.x = self.x_zero
-            self.frontend.play_sine(5000, 100)
+            self.frontend.play_sine(5000, 100, volume=0.2)
             self.current_state = self.state_steering
             self.cursor.visible = True
 
@@ -116,16 +121,14 @@ class Experiment(ExperimentSkeleton):
             self.end_trial(False, result=('overshoot', t_elapsed))
 
         # check if reached target position (center)
-        if abs(self.x) <= GOAL_PROXIMITY:
+        if (self.starting_position > 0 >= self.x) or (self.starting_position < 0 <= self.x):
             self.end_trial(True, ('goal', t_elapsed))
 
     def update_states(self):
         if self.last_packets:
-            self.last_wheel_position = self.last_packets[-1].states[WHEEL_STATE_IDX] * TRANSLATION_FACTOR
+            self.last_wheel_position = -self.last_packets[-1].states[WHEEL_STATE_IDX] * TRANSLATION_FACTOR
         if self.current_state:
             self.current_state()
-        else:
-            logging.warning('No active state!')
 
     def end_trial(self, success, result=None):
         # state transitions should be communicated to teensy
@@ -141,7 +144,8 @@ class Experiment(ExperimentSkeleton):
         if success:
             self.trigger_solenoid(solenoid=1, duration=30)
             self.cursor.visible = False
-            self.timeout(1, self.start_trial)
+            self.start_trial()
         else:
-            self.frontend.play_sine(300, 500)
+            self.frontend.play_whitenoise(500)
+            self.x = 0.9 if self.starting_position > 0 else -0.9
             self.timeout(2, self.start_trial)
