@@ -69,7 +69,9 @@ union bytesToULong {
 const uint16_t syncCounterMax = 0x95FF;
 const uint16_t syncCounterMin = 0x9500;
 volatile uint16_t syncCounter = syncCounterMax;
+volatile uint16_t syncCounterFrameInterval = 3;  // count N frames as 'clock'
 volatile byte syncCounterIdx = 0;
+volatile byte syncCounterSubIdx = 0;
 volatile bool updateSyncCounter = true;
 
 volatile unsigned long packetCount = 0;
@@ -180,10 +182,13 @@ void loop() {
 
   if (updateSyncCounter) {
     updateSyncCounter = false;
-    if (++syncCounterIdx > 15) {
-      syncCounterIdx = 0;
-      if (++syncCounter > syncCounterMax) {
-        syncCounter = syncCounterMin;
+    if (++syncCounterSubIdx > syncCounterFrameInterval) {
+      syncCounterSubIdx = 0;
+      if (++syncCounterIdx > 15) {
+        syncCounterIdx = 0;
+        if (++syncCounter > syncCounterMax) {
+          syncCounter = syncCounterMin;
+        }
       }
     }
   }
@@ -301,15 +306,12 @@ PulsePin* getPulsePinById(byte id){
 }
 
 void syncBlink() {
-  bool edge = !digitalReadFast(PIN_CAMERA_FSTROBE);
-  if (edge) {
+  if (!digitalReadFast(PIN_CAMERA_FSTROBE)) {
     digitalWriteFast(PIN_SYNC_LED, (syncCounter >> syncCounterIdx) & 0x1);
     updateSyncCounter = true;
   } else {
-    digitalWriteFast(PIN_SYNC_LED, LOW);
+    //digitalWriteFast(PIN_SYNC_LED, LOW);
   }
-  
-  
 }
 
 void processInstruction (const uint8_t* buf, size_t buf_sz) {
