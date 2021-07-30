@@ -78,6 +78,9 @@ class TeensyCommander:
 
     def handle_packet(self, packet):
         self.n_packet += 1
+        self.zmq_pub.send_pyobj(packet)
+
+        # calculate packet rate
         t_now = time.time_ns() * 0.000000001
         self.packet_timings.append(t_now)
         t_delta = t_now - (self.packet_timings[0] if len(self.packet_timings) < 1000 else self.packet_timings.pop(0))
@@ -85,7 +88,6 @@ class TeensyCommander:
             self.packets_per_second = len(self.packet_timings) / t_delta
         except ZeroDivisionError:
             self.packets_per_second = 0
-        self.zmq_pub.send_pyobj(packet)
 
     def subscriber(self):
         while True:
