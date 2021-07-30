@@ -133,7 +133,6 @@ class Experiment(ExperimentSkeleton):
 
     def end_trial(self, success, result=None):
         # state transitions should be communicated to teensy
-        self.cursor.visible = False
         logging.info(
             f'Ending trial {self.n_trial} with {"success" if success else "failure"} due to "{result[0]}" after {result[1]:0.1f} s')
 
@@ -147,9 +146,11 @@ class Experiment(ExperimentSkeleton):
 
         if success:
             self.trigger_solenoid(solenoid=1, duration=30)
-            self.cursor.visible = False
-            self.start_trial()
+            self.cursor.visible = True
+            self.x = 0
+            self.timeout(1.5, self.start_trial)
         else:
+            self.cursor.visible = False
             self.frontend.play_whitenoise(500)
             self.x = 0.9 if self.starting_position > 0 else -0.9
             self.timeout(2, self.start_trial)
