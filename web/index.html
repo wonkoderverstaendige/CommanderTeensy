@@ -16,7 +16,7 @@
             <div class="label-grid" id="grid_analog" style="background-color:#ccc"></div>
 
             <div>
-                <canvas id="gameCanvas" width="500" height="500" style="border:1px solid #c3c3c3;">Error with Canvas.</canvas>
+                <canvas id="gameCanvas" width="500" height="500" style="border:1px solid #c3c3c3;background-color: black;">Error with Canvas.</canvas>
             </div>
 
             <div class="chart" id="chart_digital">
@@ -32,13 +32,16 @@
     </body>
     <script type="module" src="webgl_plotting.js"></script>
     <script type="text/javascript" src="CanvasGame.js"></script>
+    <!--
+    <script type="text/javascript" src="CanvasGame.js"></script>
+    <script type="module" src="GamePlot.js"></script>
+    -->
     <script>
         const cameraCanvas = document.getElementById("cameraCanvas");
         const ctxCam = cameraCanvas.getContext("2d");
         ctxCam.fillStyle = "#000000";
         ctxCam.font = "35px Arial";
-        txtCam = "Tile to add camera"
-
+        txtCam = "Tile to add camera";
         ctxCam.fillText(txtCam, cameraCanvas.width/2 - ctxCam.measureText(txtCam).width/2, cameraCanvas.height/2);
     </script>
 </html>

@@ -44,7 +44,7 @@ function onError(evt) {
 
 const gameCanvas = document.getElementById("gameCanvas");
 const ctx = gameCanvas.getContext("2d");
-ctx.fillStyle = "#000000";
+ctx.fillStyle = "#ffffff";
 ctx.font = "15px Arial";
 rectsize = gameCanvas.width / 10;
 yPos = gameCanvas.height/2 - rectsize/2;
@@ -59,7 +59,6 @@ function updateRect(xPos) {
 function connectionMessage(message) {
     ctx.clearRect(0, 0, gameCanvas.width, 35)
     ctx.fillText("Connection: " + message, 10, 25);
-    ctx.fillStyle = '#000';
 }
 
 function drawRect(x, y){ctx.fillRect(x, y,rectsize,rectsize)}
