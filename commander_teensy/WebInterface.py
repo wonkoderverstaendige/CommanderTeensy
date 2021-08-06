@@ -40,6 +40,9 @@ class HTTPServer(threading.Thread):
         super(HTTPServer, self).__init__(daemon=True)
 
         logging.info(f"Launching HTTP server for directory {WEB_DIRECTORY} on port {http_port}")
+
+        # allow reuse of previously bound endpoints
+        socketserver.TCPServer.allow_reuse_address = True
         self.server = socketserver.TCPServer(("", http_port), HttpRequestHandler)
 
     def run(self):
