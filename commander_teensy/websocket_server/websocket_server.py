@@ -179,7 +179,7 @@ class WebSocketHandler(StreamRequestHandler):
                 try:
                     self.handshake()
                 except AssertionError:
-                    logging.error(f"Websocket handshake failed for client {self.client_address}. Most likely a stale connection.")
+                    logging.debug(f"Websocket handshake failed for client {self.client_address}. Most likely a stale connection.")
                     self.keep_alive = False
             elif self.valid_client:
                 self.read_next_message()
@@ -214,7 +214,7 @@ class WebSocketHandler(StreamRequestHandler):
             self.keep_alive = 0
             return
         if not masked:
-            logger.warn("Client must always be masked.")
+            logger.debug("Client must always be masked.")
             self.keep_alive = 0
             return
         if opcode == OPCODE_CONTINUATION:
@@ -304,7 +304,8 @@ class WebSocketHandler(StreamRequestHandler):
         # first line should be HTTP GET
         http_get = self.rfile.readline().decode().strip()
         if not http_get.upper().startswith('GET'):
-            logging.error('faulty get "{}"'.format(http_get))
+            if http_get:
+                logging.error('faulty get "{}"'.format(http_get))
         assert http_get.upper().startswith('GET')
         # remaining should be headers
         while True:
