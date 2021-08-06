@@ -26,11 +26,9 @@ SERIAL_PORT = '/dev/ttyACM1'
 ZMQ_SERVER_PUB_PORT = 5680
 ZMQ_SERVER_SUB_PORT = 5681
 
-USE_DUMMY = True
-
 
 class TeensyCommander:
-    def __init__(self, serial_port, http_port, ws_port, curses_screen):
+    def __init__(self, serial_port, http_port, ws_port, curses_screen, write_bin=False, use_dummy=False):
         self.n_packet = 0
         self.packets_per_second = 0
         self.packet_timings = []
@@ -56,20 +54,22 @@ class TeensyCommander:
             self.serial.flushInput()
         except serial.SerialException as e:
             logging.error("Can't find serial device: {}".format(e))
-            if USE_DUMMY:
+            if use_dummy:
                 logging.warning('Using serial dummy')
                 self.dummy = SerialDummy()
                 self.serial = self.dummy.ser
                 self.serial_port = 'DUMMY'
             else:
                 exit()
+
         self.serial_reader = serial.threaded.ReaderThread(self.serial, PacketReceiver).__enter__()
 
         # raw data consumers
         self.serial_reader.raw_callbacks.append(self.serial_dump.handle_raw)
 
         # decoded data consumers
-        self.serial_reader.raw_callbacks.append(self.serial_dump.handle_array)
+        if write_bin:
+            self.serial_reader.raw_callbacks.append(self.serial_dump.handle_array)
 
         # unpacked data consumers
         self.serial_reader.packet_callbacks.append(self.handle_packet)
@@ -143,7 +143,9 @@ def main(screen, cli_args):
     tc = TeensyCommander(serial_port=cli_args.serial_port,
                          http_port=cli_args.http_port,
                          ws_port=cli_args.ws_port,
-                         curses_screen=screen)
+                         curses_screen=screen,
+                         write_bin=cli_args.binfile,
+                         use_dummy=cli_args.dummy)
     try:
         tc.run_forever()
     except KeyboardInterrupt:
@@ -158,7 +160,10 @@ def cli_entry():
     parser.add_argument('-s', '--serial_port', default=SERIAL_PORT)
     parser.add_argument('-w', '--ws_port', default=WS_PORT)
     parser.add_argument('-H', '--http_port', default=HTTP_PORT)
-    parser.add_argument('-C', '--curses', action='store_true')
+    parser.add_argument('-B', '--binfile', action='store_true', help='Write decoded binary serial dump file')
+    parser.add_argument('-C', '--curses', action='store_true', help='Use cursesUI in terminal')
+    parser.add_argument('-D', '--dummy', action='store_true',
+                        help='Use serial dummy if no valid serial device available')
     parser.add_argument('-v', '--verbose', action='count', default=2, help="Increase logging verbosity")
 
     cli_args = parser.parse_args()
