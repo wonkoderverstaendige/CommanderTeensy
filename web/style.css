@@ -87,5 +87,5 @@ canvas {
 .toggle_button:active {
     background-color: #79ac7b;
     box-shadow: 0 1px #666;
-    transform: translateY(3px);
+    transform: translateY(0px);
 }
