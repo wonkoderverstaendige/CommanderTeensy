@@ -14,13 +14,13 @@ HTTP_PORT = 8000
 WEB_DIRECTORY = (Path(__file__).parent / '../web').resolve().as_posix()
 
 
-def bitlist(num, nbits=16):
+def num_to_bits(num, nbits=16, reverse=True):
     """Integer to list of bits"""
     # TODO: pad zeros with string formatter
     bl = list(map(int, bin(num)[2:]))
     # pad with leading zeros
     bl = [0] * (nbits - len(bl)) + bl
-    return bl
+    return list(reversed(bl)) if reverse else bl
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -89,8 +89,8 @@ class WSServer(threading.Thread):
         if packet.type == 0:
             js = json.dumps({'us_start': packet.us_start, 'us_end': packet.us_end,
                              'analog': packet.analog, 'states': packet.states,
-                             'digitalIn': bitlist(packet.digitalIn, nbits=16),
-                             'digitalOut': bitlist(packet.digitalOut, nbits=8)},
+                             'digitalIn': num_to_bits(packet.digitalIn, nbits=16),
+                             'digitalOut': num_to_bits(packet.digitalOut, nbits=8)},
                             cls=NumpyEncoder)
             self.server.send_message_to_all(js)
 
