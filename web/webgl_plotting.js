@@ -82,7 +82,7 @@ function processMessages() {
     let dsPackets = [];
     while (message_queue.length >= downsamplingFactor) {
         packets = message_queue.splice(0, downsamplingFactor);
-        dsPackets.push(packets[packets.length-1]);
+        dsPackets.push(packets[packets.length - 1]);
     }
 
     if (!dsPackets.length) return;
@@ -101,7 +101,7 @@ function newFrame() {
 
 requestAnimationFrame(newFrame);
 
-function add_label(grid, channel_name, color, box = null, button = null) {
+function add_label(grid, channel_name, color, box = null, buttons = null) {
     const div = document.createElement("div");
     div.className = "label";
     div.id = channel_name;
@@ -115,8 +115,8 @@ function add_label(grid, channel_name, color, box = null, button = null) {
         div.appendChild(box);
     }
     div.appendChild(p);
-    if (button != null) {
-        div.appendChild(button);
+    if (buttons != null) {
+        for (const btn of buttons) div.appendChild(btn);
     }
     grid.appendChild(div);
     return div;
@@ -130,6 +130,7 @@ function createUI() {
             for (let i = 0; i < partition.numLines; i++) {
                 let color = partition.colorFormat(i, partition.numLines);
                 let box;
+                let buttons;
 
                 // unit labels for analog channels and states
                 if (partition.units) {
@@ -145,18 +146,23 @@ function createUI() {
                     box.id = `${partitionID}_${i}`;
                 }
 
-                // toggle button for digital output channels
-                let button;
+
+                // toggle buttons for digital output channels
                 if (partition.hasButton) {
-                    button = document.createElement('button');
-                    let text = document.createTextNode('toggle');
-                    button.appendChild(text)
-                    button.className = "toggle_button";
-                    button.id = `${partitionID}_${i}`;
-                    button.onmousedown = btn_clicked;
+                    const button_labels = {'toggle': 'TOGGLE', 'low': 'OFF', 'high': 'ON'};
+                    buttons = Object.entries(button_labels).map(([btn_type, btn_label]) => {
+                        console.log(btn_type)
+                        const btn = document.createElement('button');
+                        let text = document.createTextNode(btn_label);
+                        btn.appendChild(text)
+                        btn.className = "digital_button";
+                        btn.id = `${partitionID}_${btn_type}_${i}`;
+                        btn.onmousedown = btn_clicked;
+                        return btn;
+                    });
                 }
 
-                add_label(label_grid, `${partitionID}_${i}`, color, box, button);
+                add_label(label_grid, `${partitionID}_${i}`, color, box, buttons);
 
             }
         }

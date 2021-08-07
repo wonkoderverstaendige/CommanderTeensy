@@ -75,11 +75,15 @@ class WSServer(threading.Thread):
     def ws_msg_rcv(self, client, server, message):
         # TODO: Match pinout, which pins are input, which output
         logging.debug(f"WS_msg {message} from {client}")
-        if self.msg_callback is None: return
+        if self.msg_callback is None:
+            return
+
         try:
             if message.startswith('digital'):
-                pin = int(message.split('put_')[1])
-                self.msg_callback({'instruction': 'toggle', 'pin': pin, 'data': []})
+                pin_type, pin_direction, instruction, pin = message.split('_')
+                instr = {'instruction': instruction, 'pin': int(pin), 'data': []}
+                logging.debug(instr)
+                self.msg_callback(instr)
             else:
                 logging.debug('Unknown WS Message:' + message)
         except BaseException as e:
