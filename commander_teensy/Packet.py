@@ -42,6 +42,13 @@ Instructions = {'low': 0,
                 'toggle': 2,
                 'pulse': 3,
                 'state': 4}
+InstructionsStructs = {
+    'low': 'B',
+    'high': 'B',
+    'toggle': 'B',
+    'pulse': 'L',
+    'state': 'l'
+}
 
 CommandPacketDesc = {'type': 'B',
                      'size': 'B',
@@ -56,7 +63,6 @@ CommandPacketSize = struct.calcsize(CommandPacketStruct)
 
 PinPulsePacket = {'pin': 'B',
                   'duration': 'H'}
-
 PinPulsePacketStruct = '<BHx'
 
 
@@ -80,42 +86,49 @@ def pack_command_packet(packet_obj):
 
 class PacketReceiver(Packetizer):
     raw_callbacks = []
+    decoded_callbacks = []
     packet_callbacks = []
 
     def connection_made(self, transport):
         super(PacketReceiver, self).connection_made(transport)
 
-    def handle_packet(self, arr):
-        """Handle an incoming packet from the serial port. The packetizer has stripped the
+    def handle_packet(self, encoded):
+        """Handle an incoming packet from the serial port. The Packetizer has stripped the
         line-termination \0 byte from it already.
         """
-        for fn_raw_callback in self.raw_callbacks:
-            try:
-                fn_raw_callback(arr)
-            except BaseException as e:
-                logging.critical(e)
+        try:
+            assert(len(encoded))
+            for cb in self.raw_callbacks:
+                cb(encoded)
+        except BaseException as e:
+            logging.critical(e)
 
         # COBS decode the array
-        if not len(arr):
-            return
         try:
-            dec = cobs.decode(arr)
+            decoded = cobs.decode(encoded)
         except cobs.DecodeError as e:
             logging.warning(str(e))
             return
 
-        packet_type = dec[0]
+        try:
+            for cb in self.decoded_callbacks:
+                cb(encoded)
+        except BaseException as e:
+            logging.critical(e)
+
+        # Unpack given the type of data
+        packet_type = decoded[0]
         if packet_type == 0:
-            self.unpack_data_packet(dec)
+            self.unpack_data_packet(decoded)
 
         elif packet_type == 1:
-            self.unpack_command_packet(dec)
+            self.unpack_command_packet(decoded)
 
         elif packet_type == 2:
-            logging.error(f'Received error packet {dec}')
+            logging.error(f'Received error packet {decoded}')
 
         else:
-            logging.error(f'Received unknown packet type: {packet_type} in packet {dec}')
+            logging.error(f'Received unknown packet type: {packet_type} in packet {decoded}')
 
     def unpack_data_packet(self, arr):
         """Handle a data packet by extracting its fields.
