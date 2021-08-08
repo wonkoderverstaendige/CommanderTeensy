@@ -129,7 +129,11 @@ class Experiment(ExperimentSkeleton):
             self.last_wheel_position = -self.last_packets[-1].states[WHEEL_STATE_IDX] * TRANSLATION_FACTOR
         if self.current_state:
             self.current_state()
-        self.frontend.send({'instruction': 'state', 'pin': 1, 'data': [4096, 4096, 1]})
+
+        x = int(max(min(self.x * 2048, 4096), -4096))
+        y = int(max(min(self.y * 2048, 4096), -4096))
+        v = int(self.cursor.visible*1000)
+        self.frontend.send({'instruction': 'state', 'data': [(1, x), (2, y), (3, v)]})
 
     def end_trial(self, success, result=None):
         # state transitions should be communicated to teensy
