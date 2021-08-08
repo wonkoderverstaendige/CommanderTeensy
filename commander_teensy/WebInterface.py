@@ -81,7 +81,7 @@ class WSServer(threading.Thread):
         try:
             if message.startswith('digital'):
                 pin_type, pin_direction, instruction, pin = message.split('_')
-                instr = {'instruction': instruction, 'pin': int(pin), 'data': []}
+                instr = {'instruction': instruction, 'data': [(int(pin), 1)]}
                 logging.debug(instr)
                 self.msg_callback(instr)
             else:

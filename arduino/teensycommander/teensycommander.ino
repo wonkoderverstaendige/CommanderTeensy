@@ -25,7 +25,7 @@ Encoder wheelEncoder(WHEEL_ENC_PINA, WHEEL_ENC_PINB);
 #define PIN_SYNC_LED 10
 #define PIN_CAMERA_FSTROBE 2
 
-// interval Timer creation
+// timing
 IntervalTimer gatherTimer;
 elapsedMicros current_micros;
 elapsedMillis current_millis;
@@ -53,18 +53,6 @@ enum packetType: uint8_t {
   ptACK
 };
 
-enum instructionType: uint8_t {
-  instPIN_LOW,
-  instPIN_HIGH,
-  instPIN_TOGGLE,
-  instPIN_PULSE,
-  instSET_STATE
-};
-
-union bytesToULong {
-  byte bytes[4];
-  unsigned long ulong;
-};
 
 const uint16_t syncCounterMax = 0x95FF;
 const uint16_t syncCounterMin = 0x9500;
@@ -75,6 +63,7 @@ volatile byte syncCounterSubIdx = 0;
 volatile bool updateSyncCounter = true;
 
 volatile unsigned long packetCount = 0;
+volatile long bufferedStates[nStates];
 struct dataPacket {
     uint8_t type;                // 1 B, packet type
     uint8_t length;              // 1 B, packet size
@@ -98,19 +87,38 @@ struct dataPacket {
                    digitalOut(0) {}
 };
 
-struct instructionPacket {
-    uint8_t type;                 // 1 B, packet type
-    uint8_t length;               // 1 B, packet size
-    uint16_t crc16;               // 2 B, CRC16
-    
-    instructionType instruction;  // 1 B
-    uint8_t target;               // 1 B
-    byte data[8];                 // 8 B
-    uint8_t padding[2];           // 2 B
+//struct instructionPacket {
+//    uint8_t type;                 // 1 B, packet type
+//    uint8_t length;               // 1 B, packet size
+//    uint16_t crc16;               // 2 B, CRC16
+//    
+//    instructionType instruction;  // 1 B
+//    uint8_t target;               // 1 B
+//    byte data[8];                 // 8 B
+//    uint8_t padding[2];           // 2 B
+//
+//    instructionPacket() : type(ptINSTR),
+//                          length(sizeof(instructionPacket)),
+//                          crc16(0){}  
+//};
 
-    instructionPacket() : type(ptINSTR),
-                          length(sizeof(instructionPacket)),
-                          crc16(0){}  
+enum instructionType: uint8_t {
+  instPIN_LOW,
+  instPIN_HIGH,
+  instPIN_TOGGLE,
+  instPIN_PULSE,
+  instSET_STATE
+};
+const uint8_t strideInstLOW = 2;
+const uint8_t strideInstHIGH = 2;
+const uint8_t strideInstTOGGLE = 2;
+const uint8_t strideInstPULSE = 5;
+const uint8_t strideInstSTATE = 5;
+
+union bytesToLong {
+  byte bytes[4];
+  unsigned long ulong;
+  long slong;
 };
 
 struct errorPacket {
@@ -129,8 +137,9 @@ struct errorPacket {
 };
 
 const int ledPin = LED_BUILTIN;
-unsigned char counter = 0;
+volatile unsigned long counter = 0;
 
+// current state, will be overwritten on gather
 dataPacket State;
 
 void setup() {
@@ -157,6 +166,10 @@ void setup() {
   for (int i=0; i<nPulsePins; i++) {
     pulsePins[i] = new PulsePin(i, pinsPulsePins[i], HIGH);
   }
+
+  for (int i=0; i<nStates; i++) {
+    bufferedStates[i] = 0;
+  }
   
   packetSerialA.begin(57600);
   packetSerialA.setPacketHandler(&onPacketReceived);
@@ -175,8 +188,8 @@ void setup() {
 }
 
 void loop() {
-  digitalWriteFast(LOOP_INDICATOR, LOW);
-  // check current serial status
+  digitalWriteFast(LOOP_INDICATOR, HIGH);
+  // check serial status for data and buffer health
   packetSerialA.update();
   packetSerialB.update();
 
@@ -225,12 +238,12 @@ void loop() {
     pulsePins[i]->updateMicro();
   }
   
-  digitalWriteFast(LOOP_INDICATOR, HIGH);
+  digitalWriteFast(LOOP_INDICATOR, LOW);
 }
 
 
 void gather() {
-  digitalWriteFast(GATHER_INDICATOR, LOW); // toggle pin to indicate gather start
+  digitalWriteFast(GATHER_INDICATOR, HIGH);
   dataPacket packet;
   packet.us_start = current_micros;
   
@@ -254,20 +267,19 @@ void gather() {
     packet.variables[p] = 0L;
   }
   packet.variables[0] = new_pos;
-  packet.variables[1] = 1;
-  packet.variables[2] = 2;
-  packet.variables[3] = 3;
+  packet.variables[1] = bufferedStates[1];
+  packet.variables[2] = bufferedStates[2];
+  packet.variables[3] = bufferedStates[3];
+  packet.variables[4] = bufferedStates[4];
+  packet.variables[4] = bufferedStates[5];
   packet.variables[4] = counter;
-  packet.variables[4] = 5;
-  packet.variables[4] = 6;
   packet.variables[7] = last_packet_took;
   packet.us_end = current_micros;
 
-  last_packet_took = current_micros - packet.us_start;
-
   State = packet;
   packetReady = true;
-  digitalWriteFast(GATHER_INDICATOR, HIGH); // toggle pin to indicate gather end
+  last_packet_took = current_micros - packet.us_start;
+  digitalWriteFast(GATHER_INDICATOR, LOW); // toggle pin to indicate gather end
 }
 
 void dumpBuffer(const uint8_t* buffer, size_t size) {
@@ -290,9 +302,6 @@ void onPacketReceived(const uint8_t* buffer, size_t size) {
 
 void applyState(dataPacket* packet) {
   // apply finite state machine updates here
-  //  for (int i=0; i<3; i++) {
-  //    digitalWriteFast(9+i, (counter >> i) & 0x1);
-  //  }
   counter++;
 }
 
@@ -305,6 +314,9 @@ PulsePin* getPulsePinById(byte id){
   return 0;
 }
 
+// synchronization pattern linking the camera to the teensy timing by
+// sending a pulsed pattern. The pattern is a counter clocked by FSTROBE
+// signal from the camera.
 void syncBlink() {
   if (!digitalReadFast(PIN_CAMERA_FSTROBE)) {
     digitalWriteFast(PIN_SYNC_LED, (syncCounter >> syncCounterIdx) & 0x1);
@@ -315,30 +327,70 @@ void syncBlink() {
 }
 
 void processInstruction (const uint8_t* buf, size_t buf_sz) {
-  struct instructionPacket* ip = (struct instructionPacket*)buf;
-  char* data = (char*)ip->data;
-  
-  switch(ip->instruction){
-      case instPIN_LOW:   
-        digitalWriteFast(pinsDigitalOut[ip->target], LOW);
-        break;
-      case instPIN_HIGH: 
-        digitalWriteFast(pinsDigitalOut[ip->target], HIGH);
-        break;
-      case instPIN_TOGGLE: 
-        digitalWriteFast(pinsDigitalOut[ip->target], !digitalReadFast(pinsDigitalOut[ip->target]));
-        break;
-      case instSET_STATE: 
-        EXTSERIAL.println("instSet_State");
-        break;
-      case instPIN_PULSE:
-        bytesToULong bul;
-        for (size_t b=0; b<sizeof(bul); b++) {
-          bul.bytes[b] = data[b];
+//  struct instructionPacket* ip = (struct instructionPacket*)buf;
+//  char* data = (char*)ip->data;
+  uint8_t instruction = buf[4];
+
+  uint8_t stride;
+  uint8_t target;
+  uint8_t pin;
+  bytesToLong bul;
+
+  switch(instruction){
+      case instPIN_LOW:
+        stride = strideInstLOW;
+        for (uint8_t pIdx = 5; pIdx + stride <= buf_sz; pIdx += stride) {
+           target = buf[pIdx];
+           pin = pinsDigitalOut[target];
+           digitalWriteFast(pin, LOW);
         }
-        pulsePins[ip->target]->pulseMicro(bul.ulong*1000);
         break;
-      default: 
+        
+      case instPIN_HIGH:
+        stride = strideInstHIGH;
+        for (uint8_t pIdx = 5; pIdx + stride <= buf_sz; pIdx += stride) {
+          target = buf[pIdx];
+          pin = pinsDigitalOut[target];
+          digitalWriteFast(pin, HIGH);
+        }
+        break;
+        
+      case instPIN_TOGGLE:
+        stride = strideInstTOGGLE;
+        for (uint8_t pIdx = 5; pIdx + stride <= buf_sz; pIdx += stride) {
+          target = buf[pIdx];
+          pin = pinsDigitalOut[target];
+          digitalWriteFast(pin, !digitalReadFast(pin));
+        }
+        break;
+        
+      case instPIN_PULSE:
+        stride = strideInstPULSE;
+        for (uint8_t pIdx = 5; pIdx + stride <= buf_sz; pIdx += stride) {
+          target = buf[pIdx];
+          for (size_t b=0; b<sizeof(bul); b++) {
+            bul.bytes[b] = buf[pIdx+1+b];
+          }
+          pulsePins[target]->pulseMicro(bul.ulong*1000);
+        }
+        break;
+        
+      case instSET_STATE:
+        stride = strideInstSTATE;
+        EXTSERIAL.println("instSet_State");
+        for (uint8_t pIdx = 5; pIdx + stride <= buf_sz; pIdx += stride) {
+          target = buf[pIdx];
+          for (size_t b=0; b<sizeof(bul); b++) {
+            bul.bytes[b] = buf[pIdx+1+b];
+          }
+          EXTSERIAL.print(target, DEC);
+          EXTSERIAL.print(':');
+          EXTSERIAL.println(bul.slong);
+          bufferedStates[target] = bul.slong;
+        }
+        break;
+        
+      default:
         EXTSERIAL.println("Unknown command"); 
         break;
   }

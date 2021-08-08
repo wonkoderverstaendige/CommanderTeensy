@@ -114,23 +114,34 @@ class TeensyCommander:
                 self.send(msg)
 
     def send(self, msg):
-        logging.debug('Send message: ' + str(msg))
-        self.pack_packet(msg)
+        if msg is not None:
+            # logging.debug('Send message: ' + str(msg))
+            self.pack_packet(msg)
+        else:
+            logging.error('Asked to send "None" message, skipping.')
 
     def pack_packet(self, instruction):
-        logging.debug(f'Packing instruction: {instruction}')
+        # logging.debug(f'Packing instruction: {instruction}')
         try:
             packed = pack_command_packet(instruction)
+            if packed is None:
+                logging.error('Failed to pack!')
+                return
             self.send_packet(packed)
         except ValueError:
             logging.debug('Unknown type!')
 
     def send_packet(self, packet):
-        logging.debug('Serial write: ' + str(packet))
+        # logging.debug('Serial write: ' + str(packet))
         try:
             self.serial.write(packet)
         except (ValueError, serial.SerialException) as e:
             logging.error(f'Serial write failed: {e}')
+
+    def __del__(self):
+        logging.debug('Making sure serial port is closed on exit.')
+        if self.serial and self.serial.isOpen():
+            self.serial.close()
 
 
 def main(screen, cli_args):

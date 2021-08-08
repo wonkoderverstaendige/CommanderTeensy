@@ -54,7 +54,7 @@ class ExperimentSkeleton:
         self.frontend.exit()
 
     def trigger_solenoid(self, solenoid=0, duration=25):
-        self.frontend.send({'instruction': 'pulse', 'pin': solenoid, 'data': [duration]})
+        self.frontend.send({'instruction': 'pulse', 'data': [(solenoid, duration)]})
 
     def end(self):
         pass
