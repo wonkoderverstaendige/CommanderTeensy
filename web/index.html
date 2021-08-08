@@ -15,13 +15,24 @@
             </div>
             <div class="label-grid" id="grid_analog" style="background-color:#ccc"></div>
 
+            <div>
+                <canvas id="gameCanvas" width="500" height="500" style="border:0 solid #c3c3c3;background-color: black;">
+                    Game canvas failed.
+                </canvas>
+            </div>
 
             <div class="chart" id="chart_digital">
                 <canvas id="canvas_digital"></canvas>
             </div>
             <div class="label-grid" id="grid_digital" style="background-color:#ccc"></div>
 
+            <div>
+                <canvas id="cameraCanvas" width="500" height="500" style="border:0 solid #c3c3c3;">
+                    Camera canvas failed.
+                </canvas>
+            </div>
+
         </div>
     </body>
-    <script type="module" src="webgl_plotting.js"></script>
+    <script type="module" src="interface.js"></script>
 </html>

@@ -3,7 +3,7 @@ import {WebglPlot, ColorRGBA, WebglLine} from "./webgl-plot/dist/webglplot.js";
 // TODO: Input buffer + downsampling for extended periods
 // TODO: Interactivity (pause, zoom, select, time on axis)
 
-export class CanvasPlot {
+export class Plot {
     constructor(canvasID, numX, cfg) {
         this.canvasID = canvasID;
         this.canvas = document.getElementById(`canvas_${canvasID}`);

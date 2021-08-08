@@ -1,6 +1,8 @@
 // noinspection DuplicatedCode
 
-import {CanvasPlot} from "./CanvasPlot.js";
+import {Plot} from "./CanvasPlot.js";
+import {Game} from "./CanvasGame.js";
+import {CameraView} from "./CanvasCamera.js";
 
 let numPoints = 2000;
 const downsamplingFactor = 5;
@@ -63,6 +65,9 @@ let wgl_plots = [];
 let ws;
 let message_queue = [];
 
+let game;
+let camera;
+
 createUI();
 init();
 
@@ -87,6 +92,7 @@ function processMessages() {
 
     if (!dsPackets.length) return;
     updateTextDisplay(dsPackets[dsPackets.length - 1]);
+    game.update(dsPackets[dsPackets.length - 1]);
     wgl_plots.forEach((plot) => {
         plot.update_data(dsPackets);
         plot.plot.update();
@@ -146,15 +152,13 @@ function createUI() {
                     box.id = `${partitionID}_${i}`;
                 }
 
-
                 // toggle buttons for digital output channels
                 if (partition.hasButton) {
                     const button_labels = {'toggle': 'TOGGLE', 'low': 'OFF', 'high': 'ON'};
                     buttons = Object.entries(button_labels).map(([btn_type, btn_label]) => {
-                        console.log(btn_type)
                         const btn = document.createElement('button');
                         let text = document.createTextNode(btn_label);
-                        btn.appendChild(text)
+                        btn.appendChild(text);
                         btn.className = "digital_button";
                         btn.id = `${partitionID}_${btn_type}_${i}`;
                         btn.onmousedown = btn_clicked;
@@ -172,9 +176,13 @@ function createUI() {
 function init() {
     // One Plot per Canvas
     for (const canvasID of Object.keys(plotConfig)) {
-        const webgl_plot = new CanvasPlot(canvasID, numPoints, plotConfig);
+        const webgl_plot = new Plot(canvasID, numPoints, plotConfig);
         wgl_plots.push(webgl_plot);
     }
+
+    // Start Game
+    game = new Game();
+    camera = new CameraView();
 
     // start accepting messages
     ws = start_websocket(5678);

@@ -1,6 +1,6 @@
 .container-grid {
     display: grid;
-    grid-template-columns: auto 200px;
+    grid-template-columns: auto 200px 400px;
     grid-template-rows: 500px 420px;
     grid-gap: 2px 2px;
     width: auto;
