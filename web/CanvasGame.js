@@ -26,8 +26,8 @@ export class Game {
 
         if (v>0) this.ctx.fillRect(cx, cy, this.rectsize, this.rectsize)
 
-        this.ctx.fillText(`x: ${x.toFixed(2)}: ${cx.toFixed(0)}`, 5, this.cw-45);
-        this.ctx.fillText(`y: ${y.toFixed(2)}: ${cy.toFixed(0)}`, 5, this.cw-25);
-        this.ctx.fillText(`v: ${v > 0}`, 5, this.cw-5);
+        this.ctx.fillText(`x: ${x.toFixed(2)}: ${cx.toFixed(0)}`, 5, this.ch-45);
+        this.ctx.fillText(`y: ${y.toFixed(2)}: ${cy.toFixed(0)}`, 5, this.ch-25);
+        this.ctx.fillText(`v: ${v > 0}`, 5, this.ch-5);
     }
 }
