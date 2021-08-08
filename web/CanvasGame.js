@@ -12,33 +12,22 @@ export class Game {
 
         this.ctx.fillStyle = "#fff";
         this.ctx.font = "15px Arial";
-        this.rectsize = this.cw / 10;
-
-        // this.drawRect(this.cw/2-this.rectsize/2, this.ch/2-this.rectsize/2);
+        this.rectsize = this.cw / 15;
     }
 
     update(packet) {
-        /*
-        packets.forEach((packet) => {
-            this.drawRect(packet[0]%canvas.width, this.canvas.height/2-this.rectsize/2);
-        });
-         */
-        // console.log(packet);
-        this.ctx.clearRect(0, 0, 100, 100);
+        this.ctx.clearRect(0, 0, this.cw, this.ch);
         let x = (packet['states'][1] / 2048);
         let y = (packet['states'][2] / 2048);
         let v = packet['states'][3];
-        this.drawRect((x+1)/2*self.cw, (y+1)/2*self.ch, v);
 
-        this.ctx.fillText(`x: ${x.toFixed(0)}`, 5, this.cw-45);
-        this.ctx.fillText(`y: ${y.toFixed(0)}`, 5, this.cw-15);
+        let cx = (x+1)/2*this.cw - this.rectsize/2;
+        let cy = (y+1)/2*this.ch - this.rectsize/2;
+
+        if (v>0) this.ctx.fillRect(cx, cy, this.rectsize, this.rectsize)
+
+        this.ctx.fillText(`x: ${x.toFixed(2)}: ${cx.toFixed(0)}`, 5, this.cw-45);
+        this.ctx.fillText(`y: ${y.toFixed(2)}: ${cy.toFixed(0)}`, 5, this.cw-25);
         this.ctx.fillText(`v: ${v > 0}`, 5, this.cw-5);
-    }
-
-    drawRect(x, y, v){
-        this.ctx.clearRect(0, 0, this.cw, this.ch);
-        if (v) {
-            this.ctx.fillRect(x, y,this.rectsize,this.rectsize)
-        }
     }
 }
