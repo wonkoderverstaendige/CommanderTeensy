@@ -25,14 +25,14 @@ export class Game {
          */
         // console.log(packet);
         this.ctx.clearRect(0, 0, 100, 100);
-        let x = packet['states'][1] / 2048;
-        let y = packet['states'][2] / 2048;
+        let x = (packet['states'][1] / 2048);
+        let y = (packet['states'][2] / 2048);
         let v = packet['states'][3];
-        this.drawRect(x, y, v);
+        this.drawRect((x+1)/2*self.cw, (y+1)/2*self.ch, v);
 
-        this.ctx.fillText(`x: ${x.toFixed(0)}`, 5, 15);
-        this.ctx.fillText(`y: ${y.toFixed(0)}`, 5, 35);
-        this.ctx.fillText(`v: ${v > 0}`, 5, 55);
+        this.ctx.fillText(`x: ${x.toFixed(0)}`, 5, this.cw-45);
+        this.ctx.fillText(`y: ${y.toFixed(0)}`, 5, this.cw-15);
+        this.ctx.fillText(`v: ${v > 0}`, 5, this.cw-5);
     }
 
     drawRect(x, y, v){
