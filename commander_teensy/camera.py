@@ -131,7 +131,7 @@ if __name__ == '__main__':
         camera.rotation = cli_args.rotation
         camera.exposure_mode = 'fixedfps'
         camera.awb_mode = 'off'
-        camera.awb_gains = [[1.], [1.]]
+        camera.awb_gains = (1., 1.)
 
         http_stream = StreamingOutput()
 
