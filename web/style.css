@@ -1,6 +1,6 @@
 .container-grid {
     display: grid;
-    grid-template-columns: auto 200px 500px;
+    grid-template-columns: auto 200px 700px;
     grid-template-rows: 500px 420px;
     grid-gap: 2px 2px;
     width: auto;
@@ -88,4 +88,26 @@ canvas {
     background-color: #79ac7b;
     box-shadow: 0 1px #666;
     transform: translateY(3px);
+}
+
+.videoStreamContainer{
+    position: relative;
+    width: 100%;
+}
+
+.videoStreamContainer #videoStreamButton {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background-color: #555;
+    color: white;
+    font-size: 16px;
+    padding: 12px 24px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.videoStreamContainer #videoStreamButton:hover {
+    background-color: black;
 }

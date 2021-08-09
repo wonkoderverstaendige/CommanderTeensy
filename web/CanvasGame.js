@@ -46,8 +46,8 @@ const gameCanvas = document.getElementById("gameCanvas");
 const ctx = gameCanvas.getContext("2d");
 ctx.fillStyle = "#ffffff";
 ctx.font = "15px Arial";
-rectsize = gameCanvas.width / 10;
-yPos = gameCanvas.height/2 - rectsize/2;
+let rectsize = gameCanvas.width / 10;
+let yPos = gameCanvas.height/2 - rectsize/2;
 
 
 function updateRect(xPos) {
