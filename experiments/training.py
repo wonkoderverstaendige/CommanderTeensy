@@ -133,7 +133,8 @@ class Experiment(ExperimentSkeleton):
         x = int(max(min(self.x * 2048, 4096), -4096))
         y = int(max(min(self.y * 2048, 4096), -4096))
         v = int(self.cursor.visible*1000)
-        self.frontend.send({'instruction': 'state', 'data': [(1, x), (2, y), (3, v)]})
+        self.frontend.send({'instruction': 'state',
+                            'data': [(1, x), (2, y), (3, v), (4, self.n_trial), (5, self.n_success)]})
 
     def end_trial(self, success, result=None):
         # state transitions should be communicated to teensy
