@@ -31,8 +31,8 @@ const plotConfig = {
                 hasButton: false,
                 hasIndicator: false,
                 scaleFactors: new Array(numAnalogIn).fill(2 ** -15 * 0.9), //[2 ** -16.5, 2 ** -10, 2 ** -12, 2 ** -12, 1 / 25, 2 ** -22, 2 ** -22, 2 ** -22],
-                units: ['cm', 'cm/s', 'cm/s²', 'Δlux', '°C', 'mA', 'Hz', 'kW'],
-                unitFormat: (x) => `${x >= 0 ? '0' : ''}${(x / 100).toFixed(2)}`,
+                units: ['turn', 'x', 'y', 'vis', 'trial', 'success', '', 'μs'],
+                unitFormat: (x) => `${x >= 0 ? '0' : ''}${(x).toFixed(2)}`,
                 colorFormat: (i, numLines) => `hsl(${180 / numLines * i + 180}, 40%, 50%)`
             },
         }
