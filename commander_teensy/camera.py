@@ -103,8 +103,8 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', action='count', default=2, help="Increase logging verbosity")
     parser.add_argument('-o', '--output', help='Output directory, created if not existing', default='/home/pi/data')
     parser.add_argument('-f', '--fps', default=30, help='Framerate', type=float)
-    parser.add_argument('-r', '--resolution', default='800x600', help='Resolution for video written to disk')
-    parser.add_argument('-R', '--rotate', default=0, help='Rotate the image (in degrees, steps of 90°', type=int)
+    parser.add_argument('-r', '--resolution', default='600x800', help='Resolution for video written to disk')
+    parser.add_argument('-R', '--rotate', default=90, help='Rotate the image (in degrees, steps of 90°', type=int)
 
     cli_args = parser.parse_args()
 
@@ -128,6 +128,11 @@ if __name__ == '__main__':
     logging.debug(f'resolution: {frame_width} x {frame_height} : {frame_width_web} x {frame_height_web}')
 
     with picamera.PiCamera(resolution=f'{frame_width}x{frame_height}', framerate=cli_args.fps) as camera:
+        camera.rotation = cli_args.rotation
+        camera.exposure_mode = 'fixedfps'
+        camera.awb_mode = 'off'
+        camera.awb_gains = [[1.], [1.]]
+
         http_stream = StreamingOutput()
 
         # record to stream
