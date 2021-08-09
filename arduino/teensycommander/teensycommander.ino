@@ -271,9 +271,9 @@ void gather() {
   packet.variables[2] = bufferedStates[2];
   packet.variables[3] = bufferedStates[3];
   packet.variables[4] = bufferedStates[4];
-  packet.variables[4] = bufferedStates[5];
-  packet.variables[4] = counter;
-  packet.variables[7] = last_packet_took;
+  packet.variables[5] = bufferedStates[5];
+  packet.variables[6] = bufferedStates[6];
+  packet.variables[7] = bufferedStates[7];
   packet.us_end = current_micros;
 
   State = packet;
