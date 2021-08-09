@@ -132,14 +132,15 @@ if __name__ == '__main__':
         camera.exposure_mode = 'fixedfps'
         camera.awb_mode = 'off'
         camera.awb_gains = (1., 1.)
+        camera.iso = 800
 
         http_stream = StreamingOutput()
 
         # record to stream
-        camera.start_recording(http_stream, format='mjpeg')
+        camera.start_recording(http_stream, format='mjpeg', resize=(frame_width_web, frame_height_web))
 
         # record to local disk
-        camera.start_recording(str(filename), splitter_port=2, resize=(frame_width_web, frame_height_web))
+        camera.start_recording(str(filename), splitter_port=2)
         camera.wait_recording(1)
         try:
             address = ('', cli_args.port)
