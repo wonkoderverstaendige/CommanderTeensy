@@ -104,7 +104,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', help='Output directory, created if not existing', default='/home/pi/data')
     parser.add_argument('-f', '--fps', default=30, help='Framerate', type=float)
     parser.add_argument('-r', '--resolution', default='600x800', help='Resolution for video written to disk')
-    parser.add_argument('-R', '--rotate', default=90, help='Rotate the image (in degrees, steps of 90°', type=int)
+    parser.add_argument('-R', '--rotation', default=90, help='Rotate the image (in degrees, steps of 90°', type=int)
 
     cli_args = parser.parse_args()
 
