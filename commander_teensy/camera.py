@@ -130,8 +130,8 @@ if __name__ == '__main__':
     frame_height_web = int(frame_height * cli_args.downscale)
     logging.debug(f'resolution: {frame_width} x {frame_height} : {frame_width_web} x {frame_height_web}')
 
-    with picamera.PiCamera(resolution=f'{frame_width}x{frame_height}', framerate=cli_args.fps) as camera:
-        camera.mode = cli_args.mode
+    with picamera.PiCamera(resolution=f'{frame_width}x{frame_height}', framerate=cli_args.fps,
+                           sensor_mode=cli_args.mode) as camera:
         camera.rotation = cli_args.rotation
         camera.exposure_mode = 'fixedfps'
         camera.awb_mode = 'off'
