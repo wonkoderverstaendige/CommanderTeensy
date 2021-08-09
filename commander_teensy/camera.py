@@ -104,6 +104,9 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', help='Output directory, created if not existing', default='/home/pi/data')
     parser.add_argument('-f', '--fps', default=30, help='Framerate', type=float)
     parser.add_argument('-r', '--resolution', default='600x800', help='Resolution for video written to disk')
+    parser.add_argument('-m', '--mode', default=1, help='Camera mode', type=int)
+    parser.add_argument('-I', '--iso', default=800, help='Camera iso sensitivity', type=int)
+    parser.add_argument('--downscale', default=0.5, help='Downscaling factor of MJPG web stream', type=float)
     parser.add_argument('-R', '--rotation', default=90, help='Rotate the image (in degrees, steps of 90°', type=int)
 
     cli_args = parser.parse_args()
@@ -123,24 +126,26 @@ if __name__ == '__main__':
     filename = save_dir / f'commanderCam_{timestampStr}.h264'
 
     frame_width, frame_height = map(int, cli_args.resolution.split('x'))
-    frame_width_web = int(frame_width / 2)
-    frame_height_web = int(frame_height / 2)
+    frame_width_web = int(frame_width * cli_args.downscale)
+    frame_height_web = int(frame_height * cli_args.downscale)
     logging.debug(f'resolution: {frame_width} x {frame_height} : {frame_width_web} x {frame_height_web}')
 
     with picamera.PiCamera(resolution=f'{frame_width}x{frame_height}', framerate=cli_args.fps) as camera:
+        camera.mode = cli_args.mode
         camera.rotation = cli_args.rotation
         camera.exposure_mode = 'fixedfps'
         camera.awb_mode = 'off'
         camera.awb_gains = (1., 1.)
-        camera.iso = 800
+        camera.iso = cli_args.iso
 
         http_stream = StreamingOutput()
 
-        # record to stream
+        # record to local disk in full resolution
+        camera.start_recording(str(filename), splitter_port=2)
+
+        # record to stream in reduced resolution
         camera.start_recording(http_stream, format='mjpeg', resize=(frame_width_web, frame_height_web))
 
-        # record to local disk
-        camera.start_recording(str(filename), splitter_port=2)
         camera.wait_recording(1)
         try:
             address = ('', cli_args.port)
