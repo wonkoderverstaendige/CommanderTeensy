@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import sys
 from pathlib import Path
+from datetime import datetime
 
 log_format = '[%(asctime)s]{%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.DEBUG,
@@ -170,14 +171,32 @@ def main():
     parser.add_argument('-v', '--verbose', action='count', default=0, help="Increase logging verbosity")
     cli_args = parser.parse_args()
 
-    # try:
-    #     loglevel = {
-    #         0: logging.ERROR,
-    #         1: logging.WARN,
-    #         2: logging.INFO,
-    #     }[cli_args.verbose]
-    # except KeyError:
-    #     loglevel = logging.DEBUG
+    try:
+        loglevel = {
+            0: logging.ERROR,
+            1: logging.WARN,
+            2: logging.INFO,
+        }[cli_args.verbose]
+    except KeyError:
+        loglevel = logging.DEBUG
+    #
+    # log_format = '[%(asctime)s]{%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
+    # logging.basicConfig(level=loglevel,
+    #                     format=log_format,
+    #                     datefmt='%H:%M:%S')
+
+    start_time_str = datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_file = logging.FileHandler(f'{start_time_str}_game.log', mode='w')
+    log_file.setLevel(logging.DEBUG)
+    log_file.setFormatter(logging.Formatter(log_format))
+
+    console = logging.StreamHandler()
+    console.setFormatter(log_format)
+    console.setLevel(loglevel)
+
+    logging.getLogger().handlers.clear()
+    logging.getLogger().addHandler(log_file)
+    # logging.getLogger().setLevel(loglevel)
 
     game = PygletGame(screen_id=cli_args.screen, fullscreen=cli_args.fullscreen, experiment_path=cli_args.experiment,
                       frame_indicator=cli_args.indicator, sound_volume=cli_args.volume)
