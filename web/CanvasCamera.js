@@ -13,13 +13,13 @@ export class CameraView {
         this.view.onerror = function(e) {
             console.error(e);
             this.view.src = '';
-        }
+        };
 
         const reload_button = document.getElementById("videoStreamButton");
         reload_button.onclick = this.reload
     }
 
-    reload() {
+    reload = function() {
         this.view.src = this.videoUri;
     }
 }

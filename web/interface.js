@@ -62,6 +62,7 @@ const plotConfig = {
 
 let wgl_plots = [];
 
+let host_url;
 let ws;
 let message_queue = [];
 
@@ -141,7 +142,7 @@ function createUI() {
                 // unit labels for analog channels and states
                 if (partition.units) {
                     box = document.createElement('div');
-                    box.id = `${partitionID}_${i}`
+                    box.id = `${partitionID}_${i}`;
                     box.className = `unit_field ${partitionID}`
                 }
 
@@ -174,6 +175,7 @@ function createUI() {
 }
 
 function init() {
+    host_url = window.location.hostname;
     // One Plot per Canvas
     for (const canvasID of Object.keys(plotConfig)) {
         const webgl_plot = new Plot(canvasID, numPoints, plotConfig);
@@ -182,7 +184,7 @@ function init() {
 
     // Start Game
     game = new Game();
-    camera = new CameraView();
+    camera = new CameraView(host_url);
 
     // start accepting messages
     ws = start_websocket(5678);
@@ -195,8 +197,7 @@ function doneResizing() {
 
 
 function start_websocket(ws_port) {
-    const url = window.location.hostname;
-    const ws = new ReconnectingWebSocket(`ws://${url}:${ws_port.toString()}`);
+    const ws = new ReconnectingWebSocket(`ws://${host_url}:${ws_port.toString()}`);
     ws.reconnectInterval = 500;
     ws.maxReconnectInterval = 1000;
     ws.timeoutInterval = 400;
@@ -228,8 +229,8 @@ function updateTextDisplay(packet) {
                 try {
                     x = packet[partition.dataID][i];
                 } catch (e) {
-                    console.error(e)
-                    console.debug(partition.dataID)
+                    console.error(e);
+                    console.debug(partition.dataID);
                     console.debug(partition)
                 }
 

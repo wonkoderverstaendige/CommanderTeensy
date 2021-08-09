@@ -134,7 +134,7 @@ if __name__ == '__main__':
         camera.start_recording(http_stream, format='mjpeg')
 
         # record to local disk
-        camera.start_recording(filename, splitter_port=2, resize=(frame_width_web, frame_height_web))
+        camera.start_recording(str(filename), splitter_port=2, resize=(frame_width_web, frame_height_web))
         camera.wait_recording(1)
         try:
             address = ('', cli_args.port)
