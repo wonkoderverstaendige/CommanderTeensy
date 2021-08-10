@@ -1,9 +1,9 @@
 import argparse
 import logging
-import numpy as np
 import sys
 from pathlib import Path
 from datetime import datetime
+import multiprocessing
 
 log_format = '[%(asctime)s]{%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.DEBUG,
@@ -11,7 +11,6 @@ logging.basicConfig(level=logging.DEBUG,
                     datefmt='%H:%M:%S')
 
 import pyglet
-import sounddevice as sd
 
 from pyglet import shapes
 from pyglet.window import key
@@ -20,6 +19,7 @@ import importlib
 
 from commander_teensy.TeensyCommander import ZMQ_SERVER_PUB_PORT as ZMQ_CLIENT_SUB_PORT
 from commander_teensy.TeensyCommander import ZMQ_SERVER_SUB_PORT as ZMQ_CLIENT_PUB_PORT
+from commander_teensy.display.Sound import SoundProcess
 
 DEFAULT_MAX_VOLUME = 0.05
 
@@ -68,8 +68,10 @@ class PygletGame(pyglet.window.Window):
         self.zmq_pub = self.zmq_ctx.socket(zmq.PUB)
         self.zmq_pub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_PUB_PORT}")
 
-        self.audio_fs = 48000
-        self.audio_volume = sound_volume  # global "maximum" volume
+        logging.info('Starting engine process...')
+        self.sound_queue = multiprocessing.Queue(10)
+        self.sound = SoundProcess(queue=self.sound_queue, max_volume=sound_volume)
+        self.sound.start()
 
         self.experiment = None
         if experiment_path:
@@ -120,16 +122,9 @@ class PygletGame(pyglet.window.Window):
 
     def on_draw(self):
         self.clear()
-        # if self.experiment:
+
         self.cursor.x = (self.experiment.x + 1) / 2 * self.sw - self.cursor.width / 2
         self.cursor.y = (self.experiment.y + 1) / 2 * self.sh - self.cursor.height / 2
-        #
-        #     if self.experiment.current_goal is not None:
-        #         self.target.x = (self.experiment.current_goal + 1) / 2 * self.sw - self.target.width / 2
-        #         self.target.y = (0 + 1) / 2 * self.sh - self.target.height / 2
-        #
-        #     self.cursor.visible = self.experiment.cue_visible
-        #     self.target.visible = self.experiment.trial_active and self.experiment.target_visible
 
         if self.frame_indicator:
             self.frame_indicator.color = self.frame_indicator_colors[self.frame_indicator_state]
@@ -138,27 +133,18 @@ class PygletGame(pyglet.window.Window):
         self.batch.draw()
         self.fps_display.draw()
 
-    def play_sine(self, frequency, duration, volume=1.0):
-        """SoundDevice requires available sound sink, i.e. active headphone jack detection."""
-        n_samples = int(self.audio_fs * duration / 1000)
-        samples = np.sin(2 * np.pi * np.arange(n_samples) * frequency / self.audio_fs).astype(
-            np.float32) * self.audio_volume * volume
-        try:
-            sd.play(samples, self.audio_fs)
-        except sd.PortAudioError as e:
-            logging.error(f'Failed to play audio: {e}')
-            pass
+    def play_sine(self, duration, frequency, volume=1.0):
+        self.sound_queue.put(['sine', duration, frequency, volume])
 
-    def play_whitenoise(self, duration, volume=1.0):
-        wn = np.random.random(int(self.audio_fs*duration/1000)).astype(np.float32)*(volume*self.audio_volume)
-        try:
-            sd.play(wn, self.audio_fs)
-        except sd.PortAudioError as e:
-            logging.error(f'Failed to play white noise: {e}')
+    def play_wn(self, duration, volume=1.0):
+        self.sound_queue.put(['wn', duration, volume])
 
     def exit(self):
         self.close()
         pyglet.app.exit()
+
+    def __del__(self):
+        self.sound_queue.put(None)
 
 
 def main():
