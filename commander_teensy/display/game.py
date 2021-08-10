@@ -136,10 +136,11 @@ class PygletGame(pyglet.window.Window):
     def play_sine(self, duration, frequency, volume=1.0):
         self.sound_queue.put(['sine', duration, frequency, volume])
 
-    def play_wn(self, duration, volume=1.0):
+    def play_whitenoise(self, duration, volume=1.0):
         self.sound_queue.put(['wn', duration, volume])
 
     def exit(self):
+        self.sound_queue.put(None)
         self.close()
         pyglet.app.exit()
 
