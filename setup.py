@@ -20,5 +20,6 @@ setup(name='CommanderTeensy',
       packages=['commander_teensy'],
       entry_points="""[console_scripts]
             teensy=commander_teensy.TeensyCommander:cli_entry
-            game=commander_teensy.display.game:main"""
+            game=commander_teensy.display.game:main
+            camera=commander_teensy.camera:main"""
       )

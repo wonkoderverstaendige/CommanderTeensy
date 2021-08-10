@@ -97,7 +97,7 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
     daemon_threads = True
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--port', default=PORT)
     parser.add_argument('-v', '--verbose', action='count', default=2, help="Increase logging verbosity")
@@ -112,8 +112,8 @@ if __name__ == '__main__':
     cli_args = parser.parse_args()
 
     # Create date and time for the filename
-    dateTimeObj = datetime.now()
-    timestampStr = dateTimeObj.strftime("%Y-%b-%d_%H-%M-%S")
+    dt_obj = datetime.now()
+    timestamp = dt_obj.strftime("%Y-%b-%d_%H-%M-%S")
 
     save_dir = Path(cli_args.output).resolve()
     if not save_dir.is_dir():
@@ -123,7 +123,7 @@ if __name__ == '__main__':
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    filename = save_dir / f'commanderCam_{timestampStr}.h264'
+    filename = save_dir / f'commanderCam_{timestamp}.h264'
 
     frame_width, frame_height = map(int, cli_args.resolution.split('x'))
     frame_width_web = int(frame_width * cli_args.downscale)
@@ -153,3 +153,7 @@ if __name__ == '__main__':
             server.serve_forever()
         finally:
             camera.stop_recording()
+
+
+if __name__ == '__main__':
+    main()
