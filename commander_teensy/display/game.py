@@ -26,7 +26,7 @@ DEFAULT_MAX_VOLUME = 0.05
 
 class PygletGame(pyglet.window.Window):
     def __init__(self, fullscreen=False, resizable=True, vsync=True, buffered=True, screen_id=0, frame_indicator=False,
-                 experiment_path=None, sound_volume=DEFAULT_MAX_VOLUME):
+                 experiment_path=None, sound_volume=DEFAULT_MAX_VOLUME, sound_device=0):
         self._display = pyglet.canvas.Display()
         self._screen = self.display.get_screens()[screen_id]
         self.sw = self.screen.width
@@ -70,7 +70,7 @@ class PygletGame(pyglet.window.Window):
 
         logging.info('Starting engine process...')
         self.sound_queue = multiprocessing.Queue(10)
-        self.sound = SoundProcess(queue=self.sound_queue, max_volume=sound_volume)
+        self.sound = SoundProcess(queue=self.sound_queue, max_volume=sound_volume, device=sound_device)
         self.sound.start()
 
         self.experiment = None
@@ -153,6 +153,7 @@ def main():
     parser.add_argument('-e', '--experiment', type=str, help="Path to experiments file")
     parser.add_argument('-I', '--indicator', action='store_true', help='Show frame update indicator')
     parser.add_argument('-F', '--fullscreen', action='store_true', help='Show frame update indicator')
+    parser.add_argument('-S', '--sounddevice', type=int, help='Sound device id')
     parser.add_argument('-V', '--volume', type=float, help='Global maximum audio volume', default=DEFAULT_MAX_VOLUME)
     parser.add_argument('-v', '--verbose', action='count', default=0, help="Increase logging verbosity")
     cli_args = parser.parse_args()
@@ -185,7 +186,8 @@ def main():
     # logging.getLogger().setLevel(loglevel)
 
     game = PygletGame(screen_id=cli_args.screen, fullscreen=cli_args.fullscreen, experiment_path=cli_args.experiment,
-                      frame_indicator=cli_args.indicator, sound_volume=cli_args.volume)
+                      frame_indicator=cli_args.indicator, sound_volume=cli_args.volume,
+                      sound_device=cli_args.sounddevice)
 
 
 if __name__ == "__main__":

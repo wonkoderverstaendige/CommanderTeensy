@@ -6,12 +6,12 @@ import numpy as np
 
 
 class SoundProcess(multiprocessing.Process):
-    def __init__(self, queue, max_volume):
+    def __init__(self, queue, max_volume, device=10):
         multiprocessing.Process.__init__(self)
         self.queue = queue
         self.audio_fs = 48000
         sd.default.samplerate = self.audio_fs
-        sd.default.device = 1
+        sd.default.device = device
         self.max_volume = max_volume  # global "maximum" volume
 
     def run(self):
