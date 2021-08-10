@@ -10,6 +10,8 @@ class SoundProcess(multiprocessing.Process):
         multiprocessing.Process.__init__(self)
         self.queue = queue
         self.audio_fs = 48000
+        sd.default.samplerate = self.audio_fs
+        sd.default.device = 1
         self.max_volume = max_volume  # global "maximum" volume
 
     def run(self):
@@ -32,7 +34,7 @@ class SoundProcess(multiprocessing.Process):
         samples = np.sin(2 * np.pi * np.arange(n_samples) * frequency / self.audio_fs).astype(
             np.float32) * self.max_volume * volume
         try:
-            sd.play(samples, self.audio_fs)
+            sd.play(samples)
         except sd.PortAudioError as e:
             logging.error(f'Failed to play audio: {e}')
             pass
@@ -40,7 +42,7 @@ class SoundProcess(multiprocessing.Process):
     def play_whitenoise(self, duration, volume=1.0):
         wn = np.random.random(int(self.audio_fs*duration/1000)).astype(np.float32)*(volume * self.max_volume)
         try:
-            sd.play(wn, self.audio_fs)
+            sd.play(wn)
         except sd.PortAudioError as e:
             logging.error(f'Failed to play white noise: {e}')
 
