@@ -1,5 +1,4 @@
 import multiprocessing
-import psutil
 import numpy as np
 
 
@@ -14,10 +13,6 @@ class SoundProcess(multiprocessing.Process):
 
     def run(self):
         print("Starting sound device process loop")
-        process = psutil.Process()
-        print("Process nice: ", process.nice())
-        process.nice(-10)
-        print("Process nice post: ", process.nice())
 
         # Workaround for sounddevice not dealing well with multiprocessing
         import sounddevice as sd
