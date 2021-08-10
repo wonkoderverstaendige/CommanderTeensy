@@ -3,17 +3,31 @@ export class CameraView {
         this.videoUri = `http://${host_uri}:${port}/stream.mjpg`;
         this.view = document.getElementById('videoStream');
         this.view.src = this.videoUri;
+        this.t_last_frame = null;
 
-        this.view.onerror = function(e) {
+        this.view.onerror = (e) => {
             console.error(e);
             this.view.src = '';
         };
+
+        this.view.onload = (e) => {
+            // each time a new frame is loaded?
+            if (this.t_last_frame != null) {
+                let elapsed = Date.now() - this.t_last_frame;
+
+                if (elapsed > 1.0) {
+                    console.log()
+                }
+            }
+
+            this.t_last_frame = Date.now();
+        }
 
         const reload_button = document.getElementById("videoStreamButton");
         reload_button.onclick = this.reload
     }
 
-    reload = function() {
+    reload = () => {
         this.view.src = this.videoUri;
     }
 }
