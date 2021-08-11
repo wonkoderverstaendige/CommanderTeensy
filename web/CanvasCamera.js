@@ -21,7 +21,7 @@ export class CameraView {
             }
 
             this.t_last_frame = Date.now();
-        }
+        };
 
         const reload_button = document.getElementById("videoStreamButton");
         reload_button.onclick = this.reload

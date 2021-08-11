@@ -30,6 +30,7 @@ PAGE = """\
 """
 
 PORT = 8111
+http_stream = None
 
 
 # Define a class for the streaming output
@@ -149,8 +150,8 @@ def main():
         camera.wait_recording(1)
         try:
             address = ('', cli_args.port)
-            server = StreamingServer(address, StreamingHandler)
-            server.serve_forever()
+            http_server = StreamingServer(address, StreamingHandler)
+            http_server.serve_forever()
         finally:
             camera.stop_recording()
 
