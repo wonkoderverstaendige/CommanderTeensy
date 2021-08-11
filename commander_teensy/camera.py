@@ -139,6 +139,7 @@ def main():
         camera.awb_gains = (1., 1.)
         camera.iso = cli_args.iso
 
+        global http_stream
         http_stream = StreamingOutput()
 
         # record to local disk in full resolution
