@@ -1,4 +1,4 @@
-import {WebglPlot, ColorRGBA, WebglLine} from "./webgl-plot/dist/webglplot.js";
+import {WebglPlot, ColorRGBA, WebglLine} from "./webgl-plot/dist/webglplot.esm.js";
 
 // TODO: Input buffer + downsampling for extended periods
 // TODO: Interactivity (pause, zoom, select, time on axis)
@@ -50,7 +50,7 @@ export class Plot {
         let nLine = 0;
         for (const [partitionID, partition] of Object.entries(this.cfg.partitions)) {
             for (let i=0; i < partition.numLines; i++) {
-               const data = [];
+                const data = [];
                 packets.forEach((packet) => {
                     data.push(packet[partition.dataID][i]);
                 });
