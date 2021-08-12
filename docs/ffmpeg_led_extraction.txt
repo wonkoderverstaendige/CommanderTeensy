@@ -1,0 +1,3 @@
+# Depending on the video content, the Y component might be more informative than the V component (change extractplanes=v to y)
+# e.g. on completely black background, the V component might never change, while on color background it does
+ffmpeg -hide_banner -y -i m57697-05232018125955-0000.avi -filter_complex "extractplanes=v[u],[u]crop=48:48:120:526[c],[c]scale=1:1[s]" -map [s] -c:v rawvideo -pix_fmt gray out.yuv
