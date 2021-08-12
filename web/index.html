@@ -16,7 +16,9 @@
             <div class="label-grid" id="grid_analog" style="background-color:#ccc"></div>
 
             <div>
-                <canvas id="gameCanvas" width="700" height="500" style="border:1px solid #c3c3c3;background-color: black;">Error with Canvas.</canvas>
+                <canvas id="gameCanvas" width="500" height="500" style="border:0 solid #c3c3c3;background-color: black;">
+                    Game canvas failed.
+                </canvas>
             </div>
 
             <div class="chart" id="chart_digital">
@@ -24,20 +26,13 @@
             </div>
             <div class="label-grid" id="grid_digital" style="background-color:#ccc"></div>
 
+
             <div class="videoStreamContainer">
-                <img id="videoStream" width="100%" height="100%" src="">
+                <img id="videoStream" src="" alt="No Stream" style="width: 100%; height:100%;object-fit:scale-down">
                 <button id="videoStreamButton">Reconnect</button>
             </div>
 
         </div>
     </body>
-    <script type="module" src="webgl_plotting.js"></script>
-    <script type="module" src="CanvasGame.js"></script>
-    <script type="module" src="CanvasVideo.js"></script>
-
-    <!--
-    <script type="text/javascript" src="CanvasGame.js"></script>
-    <script type="module" src="GamePlot.js"></script>
-    -->
-
+    <script type="module" src="interface.js"></script>
 </html>

@@ -14,13 +14,13 @@ HTTP_PORT = 8000
 WEB_DIRECTORY = (Path(__file__).parent / '../web').resolve().as_posix()
 
 
-def bitlist(num, nbits=16):
+def num_to_bits(num, nbits=16, reverse=True):
     """Integer to list of bits"""
     # TODO: pad zeros with string formatter
     bl = list(map(int, bin(num)[2:]))
     # pad with leading zeros
     bl = [0] * (nbits - len(bl)) + bl
-    return bl
+    return list(reversed(bl)) if reverse else bl
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -40,6 +40,9 @@ class HTTPServer(threading.Thread):
         super(HTTPServer, self).__init__(daemon=True)
 
         logging.info(f"Launching HTTP server for directory {WEB_DIRECTORY} on port {http_port}")
+
+        # allow reuse of previously bound endpoints
+        socketserver.TCPServer.allow_reuse_address = True
         self.server = socketserver.TCPServer(("", http_port), HttpRequestHandler)
 
     def run(self):
@@ -72,11 +75,15 @@ class WSServer(threading.Thread):
     def ws_msg_rcv(self, client, server, message):
         # TODO: Match pinout, which pins are input, which output
         logging.debug(f"WS_msg {message} from {client}")
-        if self.msg_callback is None: return
+        if self.msg_callback is None:
+            return
+
         try:
             if message.startswith('digital'):
-                pin = int(message.split('put_')[1])
-                self.msg_callback({'instruction': 'toggle', 'pin': pin, 'data': []})
+                pin_type, pin_direction, instruction, pin = message.split('_')
+                instr = {'instruction': instruction, 'data': [(int(pin), 1)]}
+                logging.debug(instr)
+                self.msg_callback(instr)
             else:
                 logging.debug('Unknown WS Message:' + message)
         except BaseException as e:
@@ -86,8 +93,8 @@ class WSServer(threading.Thread):
         if packet.type == 0:
             js = json.dumps({'us_start': packet.us_start, 'us_end': packet.us_end,
                              'analog': packet.analog, 'states': packet.states,
-                             'digitalIn': bitlist(packet.digitalIn, nbits=16),
-                             'digitalOut': bitlist(packet.digitalOut, nbits=8)},
+                             'digitalIn': num_to_bits(packet.digitalIn, nbits=16),
+                             'digitalOut': num_to_bits(packet.digitalOut, nbits=8)},
                             cls=NumpyEncoder)
             self.server.send_message_to_all(js)
 

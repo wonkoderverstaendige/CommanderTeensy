@@ -30,7 +30,7 @@ class SerialDummy(threading.Thread):
         self.ser = serial.serial_for_url('loop://')
         self.daemon = True
         self.n_packet = 0
-        self.interval = 5
+        self.interval = 1
 
         self.start()
 
@@ -42,10 +42,11 @@ class SerialDummy(threading.Thread):
         self.ser.close()
 
     def emit(self):
-        rp = self.random_packet()
-        if rp:
-            self.ser.write(rp)
-            self.n_packet += 1
+        for n in range(10):
+            rp = self.random_packet()
+            if rp:
+                self.ser.write(rp)
+                self.n_packet += 1
 
     def random_packet(self):
         packet_type = 0
@@ -60,7 +61,6 @@ class SerialDummy(threading.Thread):
 
         packet_digitalIn = int(self.n_packet / 10 % 2 ** 16)
         packet_digitalOut = int(self.n_packet / 10 % 2 ** 8)
-        # print(packet_digitalOut)
 
         packet = []
         packet.extend([packet_type, packet_size, packet_crc, packet_id,

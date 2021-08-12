@@ -19,5 +19,7 @@ setup(name='CommanderTeensy',
                         'windows-curses ; platform_system == "Windows"'],
       packages=['commander_teensy'],
       entry_points="""[console_scripts]
-            teensy=commander_teensy.TeensyCommander:cli_entry"""
+            teensy=commander_teensy.TeensyCommander:cli_entry
+            game=commander_teensy.display.game:main
+            camera=commander_teensy.camera:main"""
       )

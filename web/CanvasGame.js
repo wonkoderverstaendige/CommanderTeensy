@@ -1,70 +1,34 @@
+export class Game {
+    ctx = null;
+    constructor() {
+        this.canvas = document.getElementById("gameCanvas");
+        const devicePixelRatio = window.devicePixelRatio || 1;
+        this.canvas.width = this.canvas.clientWidth * devicePixelRatio;
+        this.canvas.height = this.canvas.clientHeight * devicePixelRatio;
+        this.cw = this.canvas.width;
+        this.ch = this.canvas.height;
 
-const wsUri = "ws://127.0.0.1:5678";
-let output;
-let websocket;
+        this.ctx = this.canvas.getContext("2d");
 
+        this.ctx.fillStyle = "#fff";
+        this.ctx.font = "15px Arial";
+        this.rectsize = this.cw / 15;
+    }
 
-function init() {
-    connectWebSocket();
+    update(packet) {
+        this.ctx.clearRect(0, 0, this.cw, this.ch);
+        let x = (packet['states'][1] / 2048);
+        let y = (packet['states'][2] / 2048);
+        let v = packet['states'][3];
+
+        let cx = (x+1)/2*this.cw - this.rectsize/2;
+        let cy = (y+1)/2*this.ch - this.rectsize/2;
+
+        if (v>0) this.ctx.fillRect(cx, cy, this.rectsize, this.rectsize)
+
+        this.ctx.fillText(`x: ${x.toFixed(2)}: ${cx.toFixed(0)}`, 5, this.ch-45);
+        this.ctx.fillText(`y: ${y.toFixed(2)}: ${cy.toFixed(0)}`, 5, this.ch-25);
+        this.ctx.fillText(`v: ${v > 0}`, 5, this.ch-5);
+    }
 }
 
-function connectWebSocket() {
-    websocket = new WebSocket(wsUri);
-
-    websocket.onopen = function (evt) {
-        onOpen(evt)
-    };
-
-    websocket.onmessage = function (evt) {
-        onMessage(evt)
-    };
-
-    websocket.onerror = function (evt) {
-        onError(evt)
-    };
-
-    websocket.onclose = function (evt) {
-        onError(evt)
-    };
-}
-
-function onOpen(evt) {
-    connectionMessage("CONNECTED");
-}
-
-function onMessage(evt) {
-    const obj = JSON.parse(evt.data);
-    updateRect(obj.analog[7])
-}
-
-function onError(evt) {
-    connectionMessage("ERROR: " + evt.data);
-    connectWebSocket();
-}
-
-const gameCanvas = document.getElementById("gameCanvas");
-const ctx = gameCanvas.getContext("2d");
-ctx.fillStyle = "#ffffff";
-ctx.font = "15px Arial";
-let rectsize = gameCanvas.width / 10;
-let yPos = gameCanvas.height/2 - rectsize/2;
-
-
-function updateRect(xPos) {
-    ctx.clearRect(0, 35, gameCanvas.width, gameCanvas.height)
-    drawRect(xPos%gameCanvas.width, yPos);
-    ctx.fillText("Position x: " + xPos%gameCanvas.width, 10, 50);
-}
-
-function connectionMessage(message) {
-    ctx.clearRect(0, 0, gameCanvas.width, 35)
-    ctx.fillText("Connection: " + message, 10, 25);
-}
-
-function drawRect(x, y){ctx.fillRect(x, y,rectsize,rectsize)}
-
-window.addEventListener("load", init, false);
-
-window.addEventListener('unload', function(evt) {
-    websocket.close();
-});

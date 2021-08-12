@@ -1,12 +1,15 @@
 // noinspection DuplicatedCode
 
-import {CanvasPlot} from "./CanvasPlot.js";
-//import {GamePlot} from "./GamePlot.js";
+import {Plot} from "./CanvasPlot.js";
+import {Game} from "./CanvasGame.js";
+import {CameraView} from "./CanvasCamera.js";
 
-let numPoints = 10000;
+
 let countUpdateTextDisplay = 0;
 let updateModulator = 1; // only update every xth time the update function is called
 let allLabels = [];
+let numPoints = 2000;
+const downsamplingFactor = 5;
 const numAnalogIn = 8;
 const numStates = 8;
 const numDigitalIn = 16;
@@ -32,8 +35,8 @@ const plotConfig = {
                 hasButton: false,
                 hasIndicator: false,
                 scaleFactors: new Array(numAnalogIn).fill(2 ** -15 * 0.9), //[2 ** -16.5, 2 ** -10, 2 ** -12, 2 ** -12, 1 / 25, 2 ** -22, 2 ** -22, 2 ** -22],
-                units: ['cm', 'cm/s', 'cm/s²', 'Δlux', '°C', 'mA', 'Hz', 'kW'],
-                unitFormat: (x) => `${x >= 0 ? '0' : ''}${(x / 100).toFixed(2)}`,
+                units: ['turn', 'x', 'y', 'vis', 'trial', 'success', '', 'μs'],
+                unitFormat: (x) => `${x >= 0 ? '0' : ''}${(x).toFixed(2)}`,
                 colorFormat: (i, numLines) => `hsl(${180 / numLines * i + 180}, 40%, 50%)`
             },
         }
@@ -64,8 +67,12 @@ const plotConfig = {
 let wgl_plots = [];
 //let game_plot = new GamePlot();
 
+let host_url;
 let ws;
 let message_queue = [];
+
+let game;
+let camera;
 
 createUI();
 init();
@@ -78,16 +85,27 @@ window.addEventListener("resize", () => {
 });
 
 function processMessages() {
-    let packets = message_queue;
-    message_queue = [];
-    updateTextDisplay(packets[packets.length - 1]);
-    //game_plot.update(packets);
+    // are we buffering too much?
+    if (message_queue.length > 10000) {
+        message_queue = [];
+    }
+    let packets = [];
+    let dsPackets = [];
+    while (message_queue.length >= downsamplingFactor) {
+        packets = message_queue.splice(0, downsamplingFactor);
+        dsPackets.push(packets[packets.length - 1]);
+    }
+
+    if (!dsPackets.length) return;
+    updateTextDisplay(dsPackets[dsPackets.length - 1]);
+    game.update(dsPackets[dsPackets.length - 1]);
     wgl_plots.forEach((plot) => {
-        plot.update(packets);
+        plot.update_data(dsPackets);
+        plot.plot.update();
     });
 }
 
-// Animation/update ticks, maybe lower to 30 fps?
+// Animation/update_data ticks, maybe lower to 30 fps?
 function newFrame() {
     processMessages();
     requestAnimationFrame(newFrame);
@@ -95,7 +113,7 @@ function newFrame() {
 
 requestAnimationFrame(newFrame);
 
-function add_label(grid, channel_name, color, box = null, button = null) {
+function add_label(grid, channel_name, color, box = null, buttons = null) {
     const div = document.createElement("div");
     div.className = "label";
     div.id = channel_name;
@@ -109,8 +127,8 @@ function add_label(grid, channel_name, color, box = null, button = null) {
         div.appendChild(box);
     }
     div.appendChild(p);
-    if (button != null) {
-        div.appendChild(button);
+    if (buttons != null) {
+        for (const btn of buttons) div.appendChild(btn);
     }
     grid.appendChild(div);
     return div;
@@ -124,11 +142,12 @@ function createUI() {
             for (let i = 0; i < partition.numLines; i++) {
                 let color = partition.colorFormat(i, partition.numLines);
                 let box;
+                let buttons;
 
                 // unit labels for analog channels and states
                 if (partition.units) {
                     box = document.createElement('div');
-                    box.id = `${partitionID}_${i}`
+                    box.id = `${partitionID}_${i}`;
                     box.className = `unit_field ${partitionID}`
                 }
 
@@ -139,18 +158,21 @@ function createUI() {
                     box.id = `${partitionID}_${i}`;
                 }
 
-                // toggle button for digital output channels
-                let button;
+                // toggle buttons for digital output channels
                 if (partition.hasButton) {
-                    button = document.createElement('button');
-                    let text = document.createTextNode('toggle');
-                    button.appendChild(text)
-                    button.className = "toggle_button";
-                    button.id = `${partitionID}_${i}`;
-                    button.onclick = btn_clicked;
+                    const button_labels = {'toggle': 'TOGGLE', 'low': 'OFF', 'high': 'ON'};
+                    buttons = Object.entries(button_labels).map(([btn_type, btn_label]) => {
+                        const btn = document.createElement('button');
+                        let text = document.createTextNode(btn_label);
+                        btn.appendChild(text);
+                        btn.className = "digital_button";
+                        btn.id = `${partitionID}_${btn_type}_${i}`;
+                        btn.onmousedown = btn_clicked;
+                        return btn;
+                    });
                 }
 
-                add_label(label_grid, `${partitionID}_${i}`, color, box, button);
+                add_label(label_grid, `${partitionID}_${i}`, color, box, buttons);
 
             }
         }
@@ -158,11 +180,16 @@ function createUI() {
 }
 
 function init() {
+    host_url = window.location.hostname;
     // One Plot per Canvas
     for (const canvasID of Object.keys(plotConfig)) {
-        const webgl_plot = new CanvasPlot(canvasID, numPoints, plotConfig);
+        const webgl_plot = new Plot(canvasID, numPoints, plotConfig);
         wgl_plots.push(webgl_plot);
     }
+
+    // Start Game
+    game = new Game();
+    camera = new CameraView(host_url);
 
     // start accepting messages
     ws = start_websocket(5678);
@@ -177,8 +204,7 @@ function doneResizing() {
 
 
 function start_websocket(ws_port) {
-    const url = window.location.hostname;
-    const ws = new ReconnectingWebSocket(`ws://${url}:${ws_port.toString()}`);
+    const ws = new ReconnectingWebSocket(`ws://${host_url}:${ws_port.toString()}`);
     ws.reconnectInterval = 500;
     ws.maxReconnectInterval = 1000;
     ws.timeoutInterval = 400;
@@ -205,6 +231,14 @@ function getLabels(){
         for (const [partitionID, partition] of Object.entries(cfg.partitions)) {
             let labelarray = [];
             for (let i = 0; i < partition.numLines; i++) {
+                let x;
+                try {
+                    x = packet[partition.dataID][i];
+                } catch (e) {
+                    console.error(e);
+                    console.debug(partition.dataID);
+                    console.debug(partition)
+                }
                 if (partition.units) {
                     const lbl = document.querySelector(`.unit_field#${partitionID}_${i}`);
                     labelarray.push(lbl);
@@ -257,39 +291,4 @@ function btn_clicked(event) {
     if (ws) {
         ws.send(event.target.id);
     }
-}
-
-/**
- * Assumes h, s, and l are contained in the set [0, 1] and
- * returns r, g, and b in the set [0, 1].
- * FROM: https://stackoverflow.com/a/9493060
- *
- * @param   {number}  h       The hue
- * @param   {number}  s       The saturation
- * @param   {number}  l       The lightness
- * @return  {Array}           The RGB representation
- */
-function hslToRgb(h, s, l) {
-    let r, g, b;
-
-    if (s === 0) {
-        r = g = b = l; // achromatic
-    } else {
-        let hue2rgb = function hue2rgb(p, q, t) {
-            if (t < 0) t += 1;
-            if (t > 1) t -= 1;
-            if (t < 1 / 6) return p + (q - p) * 6 * t;
-            if (t < 1 / 2) return q;
-            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-            return p;
-        }
-
-        let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        let p = 2 * l - q;
-        r = hue2rgb(p, q, h + 1 / 3);
-        g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1 / 3);
-    }
-
-    return [r, g, b];
 }

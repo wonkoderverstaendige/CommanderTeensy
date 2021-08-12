@@ -1,6 +1,6 @@
 .container-grid {
     display: grid;
-    grid-template-columns: auto 200px 700px;
+    grid-template-columns: auto 200px 400px;
     grid-template-rows: 500px 420px;
     grid-gap: 2px 2px;
     width: auto;
@@ -70,7 +70,7 @@ canvas {
     transform: translate(20px, -55%);
 }
 
-.toggle_button {
+.digital_button {
     float: right;
     padding: 2px 4px;
     font-size: 8px;
@@ -83,11 +83,28 @@ canvas {
     border-radius: 0;
     box-shadow: 0 3px #999;
 }
-.toggle_button:hover {background-color: #3e8e41}
-.toggle_button:active {
+.digital_button:hover {background-color: #3e8e41}
+.digital_button:active {
     background-color: #79ac7b;
     box-shadow: 0 1px #666;
-    transform: translateY(3px);
+    transform: translateY(0px);
+}
+
+.videoStreamContainer #videoStreamButton {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background-color: #555;
+    color: white;
+    font-size: 12px;
+    padding: 4px 4px;
+    border: none;
+    cursor: pointer;
+    border-radius: 1px;
+}
+
+.videoStreamContainer #videoStreamButton:hover {
+    background-color: black;
 }
 
 .videoStreamContainer{
