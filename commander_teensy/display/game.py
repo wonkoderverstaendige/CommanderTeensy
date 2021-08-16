@@ -26,11 +26,12 @@ DEFAULT_MAX_VOLUME = 0.05
 
 class PygletGame(pyglet.window.Window):
     def __init__(self, fullscreen=False, resizable=True, vsync=True, buffered=True, screen_id=0, frame_indicator=False,
-                 experiment_path=None, sound_volume=DEFAULT_MAX_VOLUME, sound_device=0):
+                 experiment_path=None, sound_volume=DEFAULT_MAX_VOLUME, sound_device=0, resolution=None):
         self._display = pyglet.canvas.Display()
         self._screen = self.display.get_screens()[screen_id]
-        self.sw = self.screen.width
-        self.sh = self.screen.height
+        w, h = (None, None) if resolution is None else tuple(map(int, resolution.split('x')))
+        self.sw = w or self.screen.width
+        self.sh = h or self.screen.height
 
         config = pyglet.gl.Config(double_buffer=buffered)
         pyglet.options['vsync'] = vsync
@@ -156,7 +157,8 @@ def main():
     parser.add_argument('-F', '--fullscreen', action='store_true', help='Show frame update indicator')
     parser.add_argument('-S', '--sounddevice', type=int, help='Sound device id')
     parser.add_argument('-V', '--volume', type=float, help='Global maximum audio volume', default=DEFAULT_MAX_VOLUME)
-    parser.add_argument('-v', '--verbose', action='count', default=0, help="Increase logging verbosity")
+    parser.add_argument('-v', '--verbose', action='count', default=2, help="Logging verbosity")
+    parser.add_argument('-r', '--resolution', type=str, help='Screen resolution', default='640x480')
     cli_args = parser.parse_args()
 
     try:
@@ -179,16 +181,19 @@ def main():
     log_file.setFormatter(logging.Formatter(log_format))
 
     console = logging.StreamHandler()
-    console.setFormatter(log_format)
+    console.setFormatter(logging.Formatter(log_format))
     console.setLevel(loglevel)
 
-    logging.getLogger().handlers.clear()
-    logging.getLogger().addHandler(log_file)
-    # logging.getLogger().setLevel(loglevel)
+    logging.getLogger('').handlers.clear()
+    logging.getLogger('').addHandler(log_file)
+    logging.getLogger('').addHandler(console)
+
+    print(loglevel)
+    logging.info('Starting game...')
 
     game = PygletGame(screen_id=cli_args.screen, fullscreen=cli_args.fullscreen, experiment_path=cli_args.experiment,
                       frame_indicator=cli_args.indicator, sound_volume=cli_args.volume,
-                      sound_device=cli_args.sounddevice)
+                      sound_device=cli_args.sounddevice, resolution=cli_args.resolution)
 
 
 if __name__ == "__main__":
