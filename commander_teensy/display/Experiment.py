@@ -34,11 +34,12 @@ class ExperimentSkeleton:
         pass
 
     def user_input_motion(self, motion):
-        if motion == key.MOTION_LEFT:
-            self.manual_x -= self.manual_velocity
-        elif motion == key.MOTION_RIGHT:
-            self.manual_x += self.manual_velocity
-        self.update_states()
+        # if motion == key.MOTION_LEFT:
+        #     self.manual_x -= self.manual_velocity
+        # elif motion == key.MOTION_RIGHT:
+        #     self.manual_x += self.manual_velocity
+        # self.update_states()
+        pass
 
     def process_packets(self, packets):
         if packets:

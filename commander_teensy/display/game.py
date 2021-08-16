@@ -35,6 +35,8 @@ class PygletGame(pyglet.window.Window):
 
         config = pyglet.gl.Config(double_buffer=buffered)
         pyglet.options['vsync'] = vsync
+        self.pressed_keys = key.KeyStateHandler()
+        self.push_handlers(self.pressed_keys)
 
         super(PygletGame, self).__init__(self.sw, self.sh, config=config, vsync=True, fullscreen=fullscreen,
                                          resizable=resizable)
@@ -169,11 +171,6 @@ def main():
         }[cli_args.verbose]
     except KeyError:
         loglevel = logging.DEBUG
-    #
-    # log_format = '[%(asctime)s]{%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
-    # logging.basicConfig(level=loglevel,
-    #                     format=log_format,
-    #                     datefmt='%H:%M:%S')
 
     start_time_str = datetime.now().strftime("%Y%m%d-%H%M%S")
     log_file = logging.FileHandler(f'{start_time_str}_game.log', mode='w')

@@ -3,6 +3,7 @@ import logging
 import random
 import time
 import math
+from pyglet.window import key
 
 WHEEL_AMPLIFICATION = 1     # amplifying wheel displacement
 TRANSLATION_FACTOR = 1/126 * WHEEL_AMPLIFICATION
@@ -127,6 +128,13 @@ class Experiment(ExperimentSkeleton):
     def update_states(self):
         if self.last_packets:
             self.last_wheel_position = -self.last_packets[-1].states[WHEEL_STATE_IDX] * TRANSLATION_FACTOR
+
+        # move with key press
+        if self.frontend.pressed_keys[key.LEFT]:
+            self.manual_x -= self.manual_velocity
+        elif self.frontend.pressed_keys[key.RIGHT]:
+            self.manual_x += self.manual_velocity
+
         if self.current_state:
             self.current_state()
 
