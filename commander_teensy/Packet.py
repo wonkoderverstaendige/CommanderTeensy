@@ -41,13 +41,16 @@ Instructions = {'low': 0,
                 'high': 1,
                 'toggle': 2,
                 'pulse': 3,
-                'state': 4}
+                'state': 4,
+                'handshake': 149,
+                'reset': 255}
 InstructionsStructs = {
     'low': 'B',
     'high': 'B',
     'toggle': 'B',
     'pulse': 'L',
-    'state': 'l'
+    'state': 'l',
+    'reset': ''
 }
 
 CommandPacketHeaderDesc = {'type': 'B',

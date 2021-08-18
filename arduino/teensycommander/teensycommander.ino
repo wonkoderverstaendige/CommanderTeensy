@@ -18,6 +18,7 @@
 
 // TODO: Make multi-serial optional
 // TODO: Handshake
+// TODO: Reset flag if packetCounter should be zero'd out
 
 #include <Encoder.h>
 #include <FastCRC.h>
@@ -431,6 +432,7 @@ void processInstruction (const uint8_t* buf, size_t buf_sz) {
         break;
 
       case instRESET:
+        EXTSERIAL.println("Resetting everything!"); 
         reset();
         break;
         
