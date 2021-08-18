@@ -21,7 +21,7 @@ from commander_teensy.TeensyCommander import ZMQ_SERVER_PUB_PORT as ZMQ_CLIENT_S
 from commander_teensy.TeensyCommander import ZMQ_SERVER_SUB_PORT as ZMQ_CLIENT_PUB_PORT
 from commander_teensy.display.Sound import SoundProcess
 
-DEFAULT_MAX_VOLUME = 0.05
+DEFAULT_MAX_VOLUME = 0.03
 
 
 class PygletGame(pyglet.window.Window):

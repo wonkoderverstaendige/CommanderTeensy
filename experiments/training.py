@@ -7,7 +7,7 @@ from pyglet.window import key
 from collections import deque
 
 WHEEL_AMPLIFICATION = 1  # amplifying wheel displacement
-TRANSLATION_FACTOR = 1 / 126 * WHEEL_AMPLIFICATION
+TRANSLATION_FACTOR = 1 / 63 * WHEEL_AMPLIFICATION
 
 MAX_TRIAL_DURATION = 60  # Maximum trial length in seconds
 MAX_OVERSHOOT = 1.1  # allowed movement in wrong direction
@@ -59,6 +59,7 @@ class Experiment(ExperimentSkeleton):
         self.trial_result = None
 
     def start(self):
+        self.frontend.send({'instruction': 'reset', 'data': []})
         self.start_trial()
 
     def start_trial(self):
