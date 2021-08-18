@@ -134,12 +134,39 @@ function add_label(grid, channel_name, color, box = null, buttons = null) {
     return div;
 }
 
-function createUI() {
-    for (const [canvasID, cfg] of Object.entries(plotConfig)) {
-        const label_grid = document.querySelector(`#grid_${canvasID}`);
+function add_spaceholder(grid, channel_name, numLines, numLines_max) {
+    const div = document.createElement("div");
+    div.className = "generalLabel";
+    div.id = channel_name;
+    div.style.backgroundColor = '#000';
+    if (channel_name.includes('analog')){
+        div.style.gridRow = "span " + numLines + " / " + numLines;
+        div.innerHTML = "ANALOG INPUT";
+    }else if(channel_name.includes('states')){
+        div.style.gridRow = "span " + numLines + " / " + numLines_max;
+        div.innerHTML = "STATES";
+    }else if(channel_name.includes('digital_input')){
+        div.style.gridRow = "span " + numLines + " / " + numLines;
+        div.innerHTML = "DIGITAL INPUT";
+    }else if(channel_name.includes('digital_output')){
+        div.style.gridRow = "span " + numLines + " / " + numLines_max;
+        div.innerHTML = "DIGITAL OUTPUT";
+    }
+    div.style.gridColumn = "2";
+    grid.appendChild(div);
+    return div;
+}
 
+function createUI() {
+    let addholder = true;
+    for (const [canvasID, cfg] of Object.entries(plotConfig)) {
+        let numLines_max = cfg.numLines;
+        const label_grid = document.querySelector(`#grid_${canvasID}`);
         for (const [partitionID, partition] of Object.entries(cfg.partitions)) {
             for (let i = 0; i < partition.numLines; i++) {
+                if (i==0){
+                    add_spaceholder(label_grid, `${partitionID}_merge`, partition.numLines, numLines_max);
+                }
                 let color = partition.colorFormat(i, partition.numLines);
                 let box;
                 let buttons;
@@ -171,9 +198,7 @@ function createUI() {
                         return btn;
                     });
                 }
-
                 add_label(label_grid, `${partitionID}_${i}`, color, box, buttons);
-
             }
         }
     }
