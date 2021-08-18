@@ -127,9 +127,10 @@ enum instructionType: uint8_t {
   instPIN_TOGGLE  = 2,
   instPIN_PULSE   = 3,
   instSET_STATE   = 4,
-  instRESET       = 127
-  instHANDSHAKE   = 111
+  instHANDSHAKE   = 149,
+  instRESET       = 255
 };
+
 const uint8_t strideInstLOW = 2;
 const uint8_t strideInstHIGH = 2;
 const uint8_t strideInstTOGGLE = 2;
