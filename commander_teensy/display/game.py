@@ -42,39 +42,9 @@ class PygletGame(pyglet.window.Window):
                                          resizable=resizable)
 
         self.px_scale = 2.0
-        # gl.glScalef(self.px_scale, self.px_scale, self.px_scale)
 
         self.batch = pyglet.graphics.Batch()
         self.keyboard = key.KeyStateHandler()
-
-        self.frame_indicator_state = True
-        self.frame_indicator_colors = {True: (0, 0, 0), False: (255, 255, 255)}
-        indicator_size = self.sw // 25
-        self.frame_indicator = None if not frame_indicator else shapes.Rectangle(self.sw - indicator_size,
-                                                                                 self.sh - indicator_size,
-                                                                                 indicator_size,
-                                                                                 indicator_size, color=(255, 255, 255),
-                                                                                 batch=self.batch)
-
-        cursor_size = self.sw // 15
-        self.cursor = shapes.Rectangle(0, 0, cursor_size, cursor_size, color=(255, 255, 255), batch=self.batch)
-        self.cursor.visible = True
-
-        self.fps_display = pyglet.window.FPSDisplay(window=self)
-        pyglet.clock.schedule_interval(self.update, 1 / 60.0)
-
-        self.zmq_ctx = zmq.Context()
-        self.zmq_sub = self.zmq_ctx.socket(zmq.SUB)
-        self.zmq_sub.setsockopt_string(zmq.SUBSCRIBE, "")
-        self.zmq_sub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_SUB_PORT}")
-
-        self.zmq_pub = self.zmq_ctx.socket(zmq.PUB)
-        self.zmq_pub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_PUB_PORT}")
-
-        logging.info('Starting engine process...')
-        self.sound_queue = multiprocessing.Queue(10)
-        self.sound = SoundProcess(queue=self.sound_queue, max_volume=sound_volume, device=sound_device)
-        self.sound.start()
 
         self.experiment = None
         if experiment_path:
@@ -92,6 +62,35 @@ class PygletGame(pyglet.window.Window):
             logging.warning(f'No experiment specified! Using base ExperimentSkeleton.')
             from commander_teensy.display.Experiment import ExperimentSkeleton as Experiment
             self.experiment = Experiment(self)
+
+        cursor_size = self.sw // 8
+        self.cursor = shapes.Rectangle(0, 0, cursor_size, cursor_size, color=(255, 255, 255), batch=self.batch)
+        self.cursor.visible = False
+
+        self.frame_indicator_state = True
+        self.frame_indicator_colors = {True: (0, 0, 0), False: (255, 255, 255)}
+        indicator_size = self.sw // 25
+        self.frame_indicator = None if not frame_indicator else shapes.Rectangle(self.sw - indicator_size,
+                                                                                 self.sh - indicator_size,
+                                                                                 indicator_size,
+                                                                                 indicator_size, color=(255, 255, 255),
+                                                                                 batch=self.batch)
+
+        self.fps_display = pyglet.window.FPSDisplay(window=self)
+        pyglet.clock.schedule_interval(self.update, 1 / 60.0)
+
+        self.zmq_ctx = zmq.Context()
+        self.zmq_sub = self.zmq_ctx.socket(zmq.SUB)
+        self.zmq_sub.setsockopt_string(zmq.SUBSCRIBE, "")
+        self.zmq_sub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_SUB_PORT}")
+
+        self.zmq_pub = self.zmq_ctx.socket(zmq.PUB)
+        self.zmq_pub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_PUB_PORT}")
+
+        logging.info('Starting engine process...')
+        self.sound_queue = multiprocessing.Queue(10)
+        self.sound = SoundProcess(queue=self.sound_queue, max_volume=sound_volume, device=sound_device)
+        self.sound.start()
 
         logging.debug('Starting pyglet app...')
         pyglet.app.run()
