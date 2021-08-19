@@ -145,3 +145,10 @@ canvas {
     margin:5px;
 }
 
+#gameCanvas{
+    border:0 solid #c3c3c3;
+    background-color: black;
+    height:300px!important;
+    width: 500px;
+    border-bottom: 2px solid white;
+}
