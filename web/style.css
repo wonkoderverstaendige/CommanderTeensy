@@ -137,6 +137,7 @@ canvas {
 .generalLabel{
     writing-mode: vertical-rl;
     text-orientation: upright;
+    text-transform: uppercase;
     display:flex;
     justify-content:center;
     align-items:center;
@@ -153,6 +154,6 @@ canvas {
     border:0 solid #c3c3c3;
     background-color: black;
     height:297px!important;
-    width: auto;
+    width: 320px;
     border-bottom: 2px solid white;
 }
