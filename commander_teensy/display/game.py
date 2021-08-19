@@ -21,57 +21,30 @@ from commander_teensy.TeensyCommander import ZMQ_SERVER_PUB_PORT as ZMQ_CLIENT_S
 from commander_teensy.TeensyCommander import ZMQ_SERVER_SUB_PORT as ZMQ_CLIENT_PUB_PORT
 from commander_teensy.display.Sound import SoundProcess
 
-DEFAULT_MAX_VOLUME = 0.05
+DEFAULT_MAX_VOLUME = 0.03
 
 
 class PygletGame(pyglet.window.Window):
     def __init__(self, fullscreen=False, resizable=True, vsync=True, buffered=True, screen_id=0, frame_indicator=False,
-                 experiment_path=None, sound_volume=DEFAULT_MAX_VOLUME, sound_device=0):
+                 experiment_path=None, sound_volume=DEFAULT_MAX_VOLUME, sound_device=0, resolution=None):
         self._display = pyglet.canvas.Display()
         self._screen = self.display.get_screens()[screen_id]
-        self.sw = self.screen.width
-        self.sh = self.screen.height
+        w, h = (None, None) if resolution is None else tuple(map(int, resolution.split('x')))
+        self.sw = w or self.screen.width
+        self.sh = h or self.screen.height
 
         config = pyglet.gl.Config(double_buffer=buffered)
         pyglet.options['vsync'] = vsync
+        self.pressed_keys = key.KeyStateHandler()
+        self.push_handlers(self.pressed_keys)
 
         super(PygletGame, self).__init__(self.sw, self.sh, config=config, vsync=True, fullscreen=fullscreen,
                                          resizable=resizable)
 
         self.px_scale = 2.0
-        # gl.glScalef(self.px_scale, self.px_scale, self.px_scale)
 
         self.batch = pyglet.graphics.Batch()
         self.keyboard = key.KeyStateHandler()
-
-        self.frame_indicator_state = True
-        self.frame_indicator_colors = {True: (0, 0, 0), False: (255, 255, 255)}
-        indicator_size = self.sw // 25
-        self.frame_indicator = None if not frame_indicator else shapes.Rectangle(self.sw - indicator_size,
-                                                                                 self.sh - indicator_size,
-                                                                                 indicator_size,
-                                                                                 indicator_size, color=(255, 255, 255),
-                                                                                 batch=self.batch)
-
-        cursor_size = self.sw // 15
-        self.cursor = shapes.Rectangle(0, 0, cursor_size, cursor_size, color=(255, 255, 255), batch=self.batch)
-        self.cursor.visible = True
-
-        self.fps_display = pyglet.window.FPSDisplay(window=self)
-        pyglet.clock.schedule_interval(self.update, 1 / 60.0)
-
-        self.zmq_ctx = zmq.Context()
-        self.zmq_sub = self.zmq_ctx.socket(zmq.SUB)
-        self.zmq_sub.setsockopt_string(zmq.SUBSCRIBE, "")
-        self.zmq_sub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_SUB_PORT}")
-
-        self.zmq_pub = self.zmq_ctx.socket(zmq.PUB)
-        self.zmq_pub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_PUB_PORT}")
-
-        logging.info('Starting engine process...')
-        self.sound_queue = multiprocessing.Queue(10)
-        self.sound = SoundProcess(queue=self.sound_queue, max_volume=sound_volume, device=sound_device)
-        self.sound.start()
 
         self.experiment = None
         if experiment_path:
@@ -89,6 +62,35 @@ class PygletGame(pyglet.window.Window):
             logging.warning(f'No experiment specified! Using base ExperimentSkeleton.')
             from commander_teensy.display.Experiment import ExperimentSkeleton as Experiment
             self.experiment = Experiment(self)
+
+        cursor_size = self.sw // 8
+        self.cursor = shapes.Rectangle(0, 0, cursor_size, cursor_size, color=(255, 255, 255), batch=self.batch)
+        self.cursor.visible = False
+
+        self.frame_indicator_state = True
+        self.frame_indicator_colors = {True: (0, 0, 0), False: (255, 255, 255)}
+        indicator_size = self.sw // 25
+        self.frame_indicator = None if not frame_indicator else shapes.Rectangle(self.sw - indicator_size,
+                                                                                 self.sh - indicator_size,
+                                                                                 indicator_size,
+                                                                                 indicator_size, color=(255, 255, 255),
+                                                                                 batch=self.batch)
+
+        self.fps_display = pyglet.window.FPSDisplay(window=self)
+        pyglet.clock.schedule_interval(self.update, 1 / 60.0)
+
+        self.zmq_ctx = zmq.Context()
+        self.zmq_sub = self.zmq_ctx.socket(zmq.SUB)
+        self.zmq_sub.setsockopt_string(zmq.SUBSCRIBE, "")
+        self.zmq_sub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_SUB_PORT}")
+
+        self.zmq_pub = self.zmq_ctx.socket(zmq.PUB)
+        self.zmq_pub.connect(f"tcp://127.0.0.1:{ZMQ_CLIENT_PUB_PORT}")
+
+        logging.info('Starting engine process...')
+        self.sound_queue = multiprocessing.Queue(10)
+        self.sound = SoundProcess(queue=self.sound_queue, max_volume=sound_volume, device=sound_device)
+        self.sound.start()
 
         logging.debug('Starting pyglet app...')
         pyglet.app.run()
@@ -156,7 +158,8 @@ def main():
     parser.add_argument('-F', '--fullscreen', action='store_true', help='Show frame update indicator')
     parser.add_argument('-S', '--sounddevice', type=int, help='Sound device id')
     parser.add_argument('-V', '--volume', type=float, help='Global maximum audio volume', default=DEFAULT_MAX_VOLUME)
-    parser.add_argument('-v', '--verbose', action='count', default=0, help="Increase logging verbosity")
+    parser.add_argument('-v', '--verbose', action='count', default=2, help="Logging verbosity")
+    parser.add_argument('-r', '--resolution', type=str, help='Screen resolution', default='640x480')
     cli_args = parser.parse_args()
 
     try:
@@ -167,11 +170,6 @@ def main():
         }[cli_args.verbose]
     except KeyError:
         loglevel = logging.DEBUG
-    #
-    # log_format = '[%(asctime)s]{%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
-    # logging.basicConfig(level=loglevel,
-    #                     format=log_format,
-    #                     datefmt='%H:%M:%S')
 
     start_time_str = datetime.now().strftime("%Y%m%d-%H%M%S")
     log_file = logging.FileHandler(f'{start_time_str}_game.log', mode='w')
@@ -179,16 +177,19 @@ def main():
     log_file.setFormatter(logging.Formatter(log_format))
 
     console = logging.StreamHandler()
-    console.setFormatter(log_format)
+    console.setFormatter(logging.Formatter(log_format))
     console.setLevel(loglevel)
 
-    logging.getLogger().handlers.clear()
-    logging.getLogger().addHandler(log_file)
-    # logging.getLogger().setLevel(loglevel)
+    logging.getLogger('').handlers.clear()
+    logging.getLogger('').addHandler(log_file)
+    logging.getLogger('').addHandler(console)
+
+    print(loglevel)
+    logging.info('Starting game...')
 
     game = PygletGame(screen_id=cli_args.screen, fullscreen=cli_args.fullscreen, experiment_path=cli_args.experiment,
                       frame_indicator=cli_args.indicator, sound_volume=cli_args.volume,
-                      sound_device=cli_args.sounddevice)
+                      sound_device=cli_args.sounddevice, resolution=cli_args.resolution)
 
 
 if __name__ == "__main__":

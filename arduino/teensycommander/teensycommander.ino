@@ -1,4 +1,24 @@
-// PROGRAM AS TRIPLE SERIAL!
+/*
+  Teensy Commander
+
+  Event recorder for behavioral setups.
+  
+  Configurable inputs and outpus sampled at 1kHz interval.
+
+  NB: Needs to be programmed in TRIPLE SERIAL mode.
+
+  Created 17th December 2019
+    By Ronny Eichler
+  Modified 2021
+    By Gerardo 
+
+  https://github.com/wonkoderverstaendige/CommanderTeensy
+
+*/
+
+// TODO: Make multi-serial optional
+// TODO: Handshake
+// TODO: Reset flag if packetCounter should be zero'd out
 
 #include <Encoder.h>
 #include <FastCRC.h>
@@ -103,12 +123,15 @@ struct dataPacket {
 //};
 
 enum instructionType: uint8_t {
-  instPIN_LOW,
-  instPIN_HIGH,
-  instPIN_TOGGLE,
-  instPIN_PULSE,
-  instSET_STATE
+  instPIN_LOW     = 0,
+  instPIN_HIGH    = 1,
+  instPIN_TOGGLE  = 2,
+  instPIN_PULSE   = 3,
+  instSET_STATE   = 4,
+  instHANDSHAKE   = 149,
+  instRESET       = 255
 };
+
 const uint8_t strideInstLOW = 2;
 const uint8_t strideInstHIGH = 2;
 const uint8_t strideInstTOGGLE = 2;
@@ -142,6 +165,26 @@ volatile unsigned long counter = 0;
 // current state, will be overwritten on gather
 dataPacket State;
 
+void reset() {
+  noInterrupts();
+  wheelEncoder.write(0);
+  current_millis = 0;
+  current_micros = 0;
+  
+  for (int i=0; i<nStates; i++) {
+    bufferedStates[i] = 0;
+  }
+
+  for (int i=0; i<nDigitalOut; i++) {
+    digitalWriteFast(pinsDigitalOut[i], LOW);
+  }
+
+  for (int i=0; i<nPulsePins; i++) {
+    pulsePins[i]->restart();
+  }
+  interrupts();
+}
+
 void setup() {
   pinMode(ledPin, OUTPUT);
   
@@ -167,9 +210,7 @@ void setup() {
     pulsePins[i] = new PulsePin(i, pinsPulsePins[i], HIGH);
   }
 
-  for (int i=0; i<nStates; i++) {
-    bufferedStates[i] = 0;
-  }
+  reset();
   
   packetSerialA.begin(57600);
   packetSerialA.setPacketHandler(&onPacketReceived);
@@ -388,6 +429,11 @@ void processInstruction (const uint8_t* buf, size_t buf_sz) {
           EXTSERIAL.println(bul.slong);
           bufferedStates[target] = bul.slong;
         }
+        break;
+
+      case instRESET:
+        EXTSERIAL.println("Resetting everything!"); 
+        reset();
         break;
         
       default:
