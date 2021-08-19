@@ -143,10 +143,11 @@ class Experiment(ExperimentSkeleton):
             self.last_wheel_position = -self.last_packets[-1].states[WHEEL_STATE_IDX] * TRANSLATION_FACTOR
 
         # move with key press
-        if self.frontend.pressed_keys[key.LEFT]:
-            self.manual_x -= self.manual_velocity
-        elif self.frontend.pressed_keys[key.RIGHT]:
-            self.manual_x += self.manual_velocity
+        # TODO: This seems to be behaving differently on the raspi
+        # if self.frontend.pressed_keys[key.LEFT]:
+        #     self.manual_x -= self.manual_velocity
+        # elif self.frontend.pressed_keys[key.RIGHT]:
+        #     self.manual_x += self.manual_velocity
 
         if self.current_state:
             self.current_state()
