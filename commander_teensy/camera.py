@@ -124,7 +124,7 @@ def main():
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    filename = save_dir / f'commanderCam_{timestamp}.h264'
+    filename = save_dir / f'{timestamp}_picamera.h264'
 
     frame_width, frame_height = map(int, cli_args.resolution.split('x'))
     frame_width_web = int(frame_width * cli_args.downscale)
