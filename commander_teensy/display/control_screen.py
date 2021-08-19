@@ -49,7 +49,7 @@ class ControlScreen(pyglet.window.Window):
         self.y = 0
         pyglet.clock.schedule_interval(self.update, 1 / 60.0)
         
-        pyglet.app.run()
+9        pyglet.app.run()
         
     def update(self, dt):
         try:

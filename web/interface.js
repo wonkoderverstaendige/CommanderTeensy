@@ -4,6 +4,10 @@ import {Plot} from "./CanvasPlot.js";
 import {Game} from "./CanvasGame.js";
 import {CameraView} from "./CanvasCamera.js";
 
+
+let countUpdateTextDisplay = 0;
+let updateModulator = 1; // only update every xth time the update function is called
+let allLabels = [];
 let numPoints = 2000;
 const downsamplingFactor = 5;
 const numAnalogIn = 8;
@@ -61,6 +65,7 @@ const plotConfig = {
 };
 
 let wgl_plots = [];
+//let game_plot = new GamePlot();
 
 let host_url;
 let ws;
@@ -129,12 +134,39 @@ function add_label(grid, channel_name, color, box = null, buttons = null) {
     return div;
 }
 
-function createUI() {
-    for (const [canvasID, cfg] of Object.entries(plotConfig)) {
-        const label_grid = document.querySelector(`#grid_${canvasID}`);
+function add_spaceholder(grid, channel_name, numLines, numLines_max) {
+    const div = document.createElement("div");
+    div.className = "generalLabel";
+    div.id = channel_name;
+    div.style.backgroundColor = '#000';
+    if (channel_name.includes('analog')){
+        div.style.gridRow = "span " + numLines + " / " + numLines;
+        div.innerHTML = "ANALOG INPUT";
+    }else if(channel_name.includes('states')){
+        div.style.gridRow = "span " + numLines + " / " + numLines_max;
+        div.innerHTML = "STATES";
+    }else if(channel_name.includes('digital_input')){
+        div.style.gridRow = "span " + numLines + " / " + numLines;
+        div.innerHTML = "DIGITAL INPUT";
+    }else if(channel_name.includes('digital_output')){
+        div.style.gridRow = "span " + numLines + " / " + numLines_max;
+        div.innerHTML = "DIGITAL OUTPUT";
+    }
+    div.style.gridColumn = "2";
+    grid.appendChild(div);
+    return div;
+}
 
+function createUI() {
+    let addholder = true;
+    for (const [canvasID, cfg] of Object.entries(plotConfig)) {
+        let numLines_max = cfg.numLines;
+        const label_grid = document.querySelector(`#grid_${canvasID}`);
         for (const [partitionID, partition] of Object.entries(cfg.partitions)) {
             for (let i = 0; i < partition.numLines; i++) {
+                if (i==0){
+                    add_spaceholder(label_grid, `${partitionID}_merge`, partition.numLines, numLines_max);
+                }
                 let color = partition.colorFormat(i, partition.numLines);
                 let box;
                 let buttons;
@@ -166,9 +198,7 @@ function createUI() {
                         return btn;
                     });
                 }
-
                 add_label(label_grid, `${partitionID}_${i}`, color, box, buttons);
-
             }
         }
     }
@@ -189,6 +219,8 @@ function init() {
     // start accepting messages
     ws = start_websocket(5678);
     ws.onmessage = ws_message_receive;
+
+    getLabels();
 }
 
 function doneResizing() {
@@ -218,12 +250,11 @@ function ws_message_receive(event) {
     message_queue.push(packet);
 }
 
-
-function updateTextDisplay(packet) {
-    if (!packet) return;
-
+function getLabels(){
+    let j = 0;
     for (const [canvasID, cfg] of Object.entries(plotConfig)) {
         for (const [partitionID, partition] of Object.entries(cfg.partitions)) {
+            let labelarray = [];
             for (let i = 0; i < partition.numLines; i++) {
                 let x;
                 try {
@@ -233,21 +264,48 @@ function updateTextDisplay(packet) {
                     console.debug(partition.dataID);
                     console.debug(partition)
                 }
-
                 if (partition.units) {
                     const lbl = document.querySelector(`.unit_field#${partitionID}_${i}`);
-                    let lblText = partition.unitFormat ? partition.unitFormat(x) : x.toFixed(2);
-                    if (partition.units) {
-                        lblText = lblText + ' ' + partition.units[i];
-                    }
-                    lbl.textContent = lblText;
+                    labelarray.push(lbl);
                 }
-
                 if (partition.hasIndicator) {
-                    let bg_color = x ? partition.hasIndicator : '#000'; // hasIndicator is flag and ON color
                     const indicator = document.querySelector(`.indicator#${partitionID}_${i}`);
-                    indicator.style.backgroundColor = bg_color;
+                    labelarray.push(indicator);
                 }
+            }
+            allLabels[j] = {partitionid: partitionID, partition: partition, label: labelarray}
+            j += 1;
+        }
+    }
+}
+
+function updateTextDisplay(packet) {
+    countUpdateTextDisplay += 1;
+    if (countUpdateTextDisplay%updateModulator != 0) return;
+    if (!packet) return;
+
+    for (let z = 0; z < allLabels.length; z++) {
+        for (let i = 0; i < allLabels[z].partition.numLines; i++) {
+            let x;
+            try {
+                x = packet[allLabels[z].partition.dataID][i];
+            } catch (e) {
+                console.error(e)
+                console.debug(allLabels[z].partition.dataID)
+                console.debug(allLabels[z].partition)
+            }
+            if (allLabels[z].partition.units) {
+                const lbl = allLabels[z].label[i];
+                let lblText = allLabels[z].partition.unitFormat ? allLabels[z].partition.unitFormat(x) : x.toFixed(2);
+                if (allLabels[z].partition.units) {
+                    lblText = lblText + ' ' + allLabels[z].partition.units[i];
+                }
+                lbl.textContent = lblText;
+            }
+            if (allLabels[z].partition.hasIndicator) {
+                let bg_color = x ? allLabels[z].partition.hasIndicator : '#000'; // hasIndicator is flag and ON color
+                const indicator = allLabels[z].label[i];
+                indicator.style.backgroundColor = bg_color;
             }
         }
     }

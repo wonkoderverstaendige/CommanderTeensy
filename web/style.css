@@ -1,6 +1,6 @@
 .container-grid {
     display: grid;
-    grid-template-columns: auto 200px 400px;
+    grid-template-columns: auto 250px 500px;
     grid-template-rows: 500px 420px;
     grid-gap: 2px 2px;
     width: auto;
@@ -21,7 +21,7 @@ canvas {
 
 .label-grid {
     display: grid;
-    grid-template-columns: auto;
+    grid-template-columns: auto 35px;
     grid-template-rows: auto;
     grid-gap: 2px;
 }
@@ -105,4 +105,50 @@ canvas {
 
 .videoStreamContainer #videoStreamButton:hover {
     background-color: black;
+}
+
+.videoStreamContainer{
+    position: relative;
+    width: 100%;
+    background-color: black;
+}
+
+.videoStreamContainer #videoStreamButton {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background-color: #555;
+    color: white;
+    font-size: 16px;
+    padding: 12px 24px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.videoStreamContainer #videoStreamButton:hover {
+    background-color: black;
+}
+
+.generalLabel{
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    color:white;
+}
+
+#button1, #button2, #button3, #button4, #button5, #button6 {
+    width:45%;
+    height:40px;
+    margin:5px;
+}
+
+#gameCanvas{
+    border:0 solid #c3c3c3;
+    background-color: black;
+    height:300px!important;
+    width: 500px;
+    border-bottom: 2px solid white;
 }

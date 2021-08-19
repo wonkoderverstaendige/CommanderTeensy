@@ -31,3 +31,4 @@ export class Game {
         this.ctx.fillText(`v: ${v > 0}`, 5, this.ch-5);
     }
 }
+
