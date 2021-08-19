@@ -29,7 +29,7 @@ class PygletGame(pyglet.window.Window):
                  experiment_path=None, sound_volume=DEFAULT_MAX_VOLUME, sound_device=0, resolution=None):
         self._display = pyglet.canvas.Display()
         self._screen = self.display.get_screens()[screen_id]
-        w, h = (None, None) if resolution is None else tuple(map(int, resolution.split('x')))
+        w, h = tuple(map(int, resolution.split('x'))) if resolution and 'x' in resolution else (None, None)
         self.sw = w or self.screen.width
         self.sh = h or self.screen.height
 
@@ -159,7 +159,7 @@ def main():
     parser.add_argument('-S', '--sounddevice', type=int, help='Sound device id')
     parser.add_argument('-V', '--volume', type=float, help='Global maximum audio volume', default=DEFAULT_MAX_VOLUME)
     parser.add_argument('-v', '--verbose', action='count', default=2, help="Logging verbosity")
-    parser.add_argument('-r', '--resolution', type=str, help='Screen resolution', default='640x480')
+    parser.add_argument('-r', '--resolution', type=str, help='Screen resolution', default='')
     cli_args = parser.parse_args()
 
     try:
