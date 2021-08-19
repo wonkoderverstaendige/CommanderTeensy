@@ -141,16 +141,16 @@ function add_spaceholder(grid, channel_name, numLines, numLines_max) {
     div.style.backgroundColor = '#000';
     if (channel_name.includes('analog')){
         div.style.gridRow = "span " + numLines + " / " + numLines;
-        div.innerHTML = "ANALOG INPUT";
+        div.innerHTML = "Analog In";
     }else if(channel_name.includes('states')){
         div.style.gridRow = "span " + numLines + " / " + numLines_max;
-        div.innerHTML = "STATES";
+        div.innerHTML = "States";
     }else if(channel_name.includes('digital_input')){
         div.style.gridRow = "span " + numLines + " / " + numLines;
-        div.innerHTML = "DIGITAL INPUT";
+        div.innerHTML = "Digital In";
     }else if(channel_name.includes('digital_output')){
         div.style.gridRow = "span " + numLines + " / " + numLines_max;
-        div.innerHTML = "DIGITAL OUTPUT";
+        div.innerHTML = "Digital Out";
     }
     div.style.gridColumn = "2";
     grid.appendChild(div);

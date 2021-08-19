@@ -1,6 +1,10 @@
+.body {
+    margin: 1px
+}
+
 .container-grid {
     display: grid;
-    grid-template-columns: auto 250px 500px;
+    grid-template-columns: auto 225px 320px;
     grid-template-rows: 500px 420px;
     grid-gap: 2px 2px;
     width: auto;
@@ -92,12 +96,12 @@ canvas {
 
 .videoStreamContainer #videoStreamButton {
     position: absolute;
-    bottom: 5px;
-    right: 5px;
+    bottom: 2px;
+    right: 2px;
     background-color: #555;
     color: white;
-    font-size: 12px;
-    padding: 4px 4px;
+    font-size: 10px;
+    padding: 2px 2px;
     border: none;
     cursor: pointer;
     border-radius: 1px;
@@ -148,7 +152,7 @@ canvas {
 #gameCanvas{
     border:0 solid #c3c3c3;
     background-color: black;
-    height:300px!important;
-    width: 500px;
+    height:297px!important;
+    width: auto;
     border-bottom: 2px solid white;
 }
