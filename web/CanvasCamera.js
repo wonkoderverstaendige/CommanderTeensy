@@ -15,9 +15,9 @@ export class CameraView {
             if (this.t_last_frame != null) {
                 let elapsed = Date.now() - this.t_last_frame;
 
-                if (elapsed > 1.0) {
-                    console.log()
-                }
+                // if (elapsed > 1.0) {
+                //     console.log()
+                // }
             }
 
             this.t_last_frame = Date.now();

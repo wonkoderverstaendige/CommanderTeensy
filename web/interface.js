@@ -164,7 +164,7 @@ function createUI() {
         const label_grid = document.querySelector(`#grid_${canvasID}`);
         for (const [partitionID, partition] of Object.entries(cfg.partitions)) {
             for (let i = 0; i < partition.numLines; i++) {
-                if (i==0){
+                if (!i){
                     add_spaceholder(label_grid, `${partitionID}_merge`, partition.numLines, numLines_max);
                 }
                 let color = partition.colorFormat(i, partition.numLines);
@@ -256,14 +256,14 @@ function getLabels(){
         for (const [partitionID, partition] of Object.entries(cfg.partitions)) {
             let labelarray = [];
             for (let i = 0; i < partition.numLines; i++) {
-                let x;
-                try {
-                    x = packet[partition.dataID][i];
-                } catch (e) {
-                    console.error(e);
-                    console.debug(partition.dataID);
-                    console.debug(partition)
-                }
+                // let x;
+                // try {
+                //     x = packet[partition.dataID][i];
+                // } catch (e) {
+                //     console.error(e);
+                //     console.debug(partition.dataID);
+                //     console.debug(partition)
+                // }
                 if (partition.units) {
                     const lbl = document.querySelector(`.unit_field#${partitionID}_${i}`);
                     labelarray.push(lbl);
@@ -273,7 +273,7 @@ function getLabels(){
                     labelarray.push(indicator);
                 }
             }
-            allLabels[j] = {partitionid: partitionID, partition: partition, label: labelarray}
+            allLabels[j] = {partitionId: partitionID, partition: partition, label: labelarray};
             j += 1;
         }
     }
@@ -281,7 +281,7 @@ function getLabels(){
 
 function updateTextDisplay(packet) {
     countUpdateTextDisplay += 1;
-    if (countUpdateTextDisplay%updateModulator != 0) return;
+    if (countUpdateTextDisplay%updateModulator) return;
     if (!packet) return;
 
     for (let z = 0; z < allLabels.length; z++) {
@@ -290,8 +290,8 @@ function updateTextDisplay(packet) {
             try {
                 x = packet[allLabels[z].partition.dataID][i];
             } catch (e) {
-                console.error(e)
-                console.debug(allLabels[z].partition.dataID)
+                console.error(e);
+                console.debug(allLabels[z].partition.dataID);
                 console.debug(allLabels[z].partition)
             }
             if (allLabels[z].partition.units) {
