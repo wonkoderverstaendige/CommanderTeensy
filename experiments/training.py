@@ -6,8 +6,8 @@ import math
 from pyglet.window import key
 from collections import deque
 
-WHEEL_AMPLIFICATION = 1  # amplifying wheel displacement
-TRANSLATION_FACTOR = 1 / 63 * WHEEL_AMPLIFICATION
+WHEEL_AMPLIFICATION = 0.5  # amplifying wheel displacement
+TRANSLATION_FACTOR = 1 / 126 * WHEEL_AMPLIFICATION
 
 MAX_TRIAL_DURATION = 60  # Maximum trial length in seconds
 MAX_OVERSHOOT = 1.1  # allowed movement in wrong direction
@@ -68,14 +68,16 @@ class Experiment(ExperimentSkeleton):
         self.t_start_trial = time.time()
 
         self.n_trial += 1
-        if self.repeat_trial and len(self.directions_trial_moves) == self.directions_trial_moves.maxlen:
+        if self.repeat_trial and len(self.directions_trial_moves) >= self.directions_trial_moves.maxlen:
             # de-biasing should be applied and we have enough past trials to do so
+            # Will increase likelihood goal appears on the side the subject tends to move towards,
+            # reducing the reward for stereotypic behavior
             mu = sum(self.directions_trial_moves) / self.directions_trial_moves.maxlen
         else:
             mu = 0.5
         d = random.normalvariate(mu, sigma=0.5)
-        logging.debug(f'Starting trial on {"Left" if d < 0 else "Right"} with d={d:0.2f}')
         logging.debug(self.directions_trial_moves)
+        logging.debug(f'Starting trial on {"Left" if d < 0 else "Right"} with d={d:0.2f} (mu={mu:0.2f})')
 
         self.starting_position = (int(d < 0.5) * 2 - 1) * START_POS_OFFSET
         self.manual_x = 0
@@ -160,7 +162,7 @@ class Experiment(ExperimentSkeleton):
 
     def end_trial(self, success, result=None):
         # state transitions should be communicated to teensy
-        direction = self.x_zero > self.x
+        direction = self.x_zero < self.x
         logging.info(
             f'Ending trial {self.n_trial} with {"success" if success else "failure"} due to "{result[0]}" '
             f'after {result[1]:0.1f} s.')
@@ -168,6 +170,7 @@ class Experiment(ExperimentSkeleton):
         # store the direction of the wheel over the trial if not a timeout
         if result[0] != 'timeout':
             self.directions_trial_moves.append(direction)
+            logging.info(f'Moved to {"Right" if direction else "Left"}')
 
         if success:
             self.n_success += 1
