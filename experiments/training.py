@@ -162,7 +162,7 @@ class Experiment(ExperimentSkeleton):
 
     def end_trial(self, success, result=None):
         # state transitions should be communicated to teensy
-        direction = self.x_zero < self.x
+        direction = self.x > self.starting_position
         logging.info(
             f'Ending trial {self.n_trial} with {"success" if success else "failure"} due to "{result[0]}" '
             f'after {result[1]:0.1f} s.')
